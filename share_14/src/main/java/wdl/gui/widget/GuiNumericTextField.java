@@ -14,15 +14,15 @@
 package wdl.gui.widget;
 
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.util.text.ITextComponent;
 
 /**
  * {@link GuiTextField} that only accepts numbers.
  */
-public class GuiNumericTextField extends TextFieldWidget {
-	public GuiNumericTextField(int id, FontRenderer fontRenderer,
-			int x, int y, int width, int height) {
-		super(fontRenderer, x, y, width, height, "Text field"); // XXX Accessibility data
+public class GuiNumericTextField extends WDLTextField {
+	public GuiNumericTextField(FontRenderer fontRenderer,
+			int x, int y, int width, int height, ITextComponent text) {
+		super(fontRenderer, x, y, width, height, text);
 		setText("0");
 	}
 

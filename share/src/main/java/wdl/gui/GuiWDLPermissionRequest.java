@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -18,7 +18,6 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.TextComponentString;
 import wdl.WDL;
@@ -27,6 +26,7 @@ import wdl.gui.widget.ButtonDisplayGui;
 import wdl.gui.widget.TextList;
 import wdl.gui.widget.WDLButton;
 import wdl.gui.widget.WDLScreen;
+import wdl.gui.widget.WDLTextField;
 
 /**
  * GUI for requesting permissions.  Again, this is a work in progress.
@@ -44,7 +44,7 @@ public class GuiWDLPermissionRequest extends WDLScreen {
 	/**
 	 * Field in which the wanted request is entered.
 	 */
-	private GuiTextField requestField;
+	private WDLTextField requestField;
 	/**
 	 * Button for submitting the request.
 	 */
@@ -76,8 +76,8 @@ public class GuiWDLPermissionRequest extends WDLScreen {
 					+ request.getValue() + "'.");
 		}
 
-		this.requestField = this.addTextField(new GuiTextField(0, font,
-				width / 2 - 155, 18, 150, 20));
+		this.requestField = this.addTextField(new WDLTextField(font,
+				width / 2 - 155, 18, 150, 20, new TextComponentString("Request")));
 
 		this.submitButton = this.addButton(new WDLButton(
 				width / 2 + 5, 18, 150, 20,

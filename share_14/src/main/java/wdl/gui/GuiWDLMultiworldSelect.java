@@ -17,14 +17,16 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import wdl.WDL;
 import wdl.config.Configuration;
 import wdl.config.IConfiguration;
 import wdl.config.settings.MiscSettings;
 import wdl.gui.widget.WDLButton;
+import wdl.gui.widget.WDLTextField;
 
 /**
  * A GUI for selecting which world the player is currently in.
@@ -35,7 +37,7 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 	private class WorldGuiButton extends WDLButton {
 		private final int buttonOffset;
 		public WorldGuiButton(int buttonOffset, int x, int y, int width, int height) {
-			super(x, y, width, height, "");
+			super(x, y, width, height, new StringTextComponent(""));
 			this.buttonOffset = buttonOffset;
 		}
 
@@ -43,10 +45,10 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 		public void beforeDraw() {
 			MultiworldInfo info = getWorldInfo();
 			if (info == null) {
-				setMessage(""); // XXX
+				setMessage(new StringTextComponent("")); // XXX
 				setEnabled(false);
 			} else {
-				setMessage(info.displayName);
+				setMessage(new StringTextComponent(info.displayName));
 				setEnabled(true);
 			}
 
@@ -176,11 +178,11 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 	/**
 	 * The "New name" field.
 	 */
-	private TextFieldWidget newNameField;
+	private WDLTextField newNameField;
 	/**
 	 * The "Search" field.  Allows filtering.
 	 */
-	private TextFieldWidget searchField;
+	private WDLTextField searchField;
 	/**
 	 * The "New world" button.
 	 */
@@ -266,7 +268,7 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 		int y = this.height - 49;
 
 		this.addButton(new WDLButton(this.width / 2 - 155, this.height - 25, 150, 20,
-				I18n.format("gui.cancel")) {
+				new TranslationTextComponent("gui.cancel")) {
 			public @Override void performAction() {
 				callback.onCancel();
 			}
@@ -274,14 +276,15 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 
 		this.acceptBtn = this.addButton(new WDLButton(
 				this.width / 2 + 5, this.height - 25, 150, 20,
-				I18n.format("wdl.gui.multiworldSelect.done")) {
+				new TranslationTextComponent("wdl.gui.multiworldSelect.done")) {
 			public @Override void performAction() {
 				callback.onWorldSelected(selectedMultiWorld.folderName);
 			}
 		});
 		this.acceptBtn.setEnabled(selectedMultiWorld != null);
 
-		prevButton = this.addButton(new WDLButton(this.width / 2 - offset, y, 20, 20, "<") {
+		prevButton = this.addButton(new WDLButton(this.width / 2 - offset, y, 20, 20,
+				new StringTextComponent("<")) {
 			public @Override void performAction() {
 				index--;
 			}
@@ -294,7 +297,7 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 
 		nextButton = this.addButton(new WDLButton(
 				this.width / 2 - offset + 25 + numWorldButtons * 155,
-				y, 20, 20, ">") {
+				y, 20, 20, new StringTextComponent(">")) {
 			public @Override void performAction() {
 				index++;
 			}
@@ -302,17 +305,19 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 
 		this.newWorldButton = this.addButton(new WDLButton(
 				this.width / 2 - 155, 29, 150, 20,
-				I18n.format("wdl.gui.multiworldSelect.newName")) {
+				new TranslationTextComponent("wdl.gui.multiworldSelect.newName")) {
 			public @Override void performAction() {
 				showNewWorldTextBox = true;
 			}
 		});
 
-		this.newNameField = this.addTextField(new TextFieldWidget(this.font,
-				this.width / 2 - 155, 29, 150, 20, I18n.format("wdl.gui.multiworldSelect.newName")));
+		this.newNameField = this.addTextField(new WDLTextField(this.font,
+				this.width / 2 - 155, 29, 150, 20,
+				new TranslationTextComponent("wdl.gui.multiworldSelect.newName")));
 
-		this.searchField = this.addTextField(new TextFieldWidget(this.font,
-				this.width / 2 + 5, 29, 150, 20, I18n.format("wdl.gui.multiworldSelect.search")));
+		this.searchField = this.addTextField(new WDLTextField(this.font,
+				this.width / 2 + 5, 29, 150, 20,
+				new TranslationTextComponent("wdl.gui.multiworldSelect.search")));
 		this.searchField.setText(searchText);
 	}
 
@@ -364,7 +369,7 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 			prevButton.setEnabled(true);
 		}
 
-		Utils.drawBorder(53, 53, 0, 0, height, width);
+		this.drawBorder(53, 53, 0, 0, height, width);
 
 		this.drawCenteredString(this.font,
 				I18n.format("wdl.gui.multiworldSelect.subtitle"),

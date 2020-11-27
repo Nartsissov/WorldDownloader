@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2018 Pokechu22, julialy
+ * Copyright (c) 2018-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -16,8 +16,11 @@ package wdl.versioned;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.client.CCustomPayloadPacket;
+import net.minecraft.network.play.server.SChatPacket;
 import net.minecraft.network.play.server.SCustomPayloadPlayPacket;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ChatType;
+import net.minecraft.util.text.StringTextComponent;
 import wdl.versioned.VersionedFunctions.ChannelName;
 
 /**
@@ -44,6 +47,13 @@ final class PacketFunctions {
 	 */
 	static SCustomPayloadPlayPacket makeServerPluginMessagePacket(@ChannelName String channel, byte[] bytes) {
 		return new SCustomPayloadPlayPacket(new ResourceLocation(channel), new PacketBuffer(Unpooled.copiedBuffer(bytes)));
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#makeChatPacket
+	 */
+	static SChatPacket makeChatPacket(String message) {
+		return new SChatPacket(new StringTextComponent(message), ChatType.SYSTEM);
 	}
 
 	/* (non-javadoc)

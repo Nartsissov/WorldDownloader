@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -16,14 +16,15 @@ package wdl.gui;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import wdl.WDL;
 import wdl.config.IConfiguration;
 import wdl.config.settings.GeneratorSettings;
 import wdl.gui.widget.ButtonDisplayGui;
 import wdl.gui.widget.WDLScreen;
+import wdl.gui.widget.WDLTextField;
 import wdl.gui.widget.SettingButton;
 import wdl.gui.widget.WDLButton;
 import wdl.versioned.VersionedFunctions;
@@ -33,7 +34,7 @@ public class GuiWDLGenerator extends WDLScreen {
 	private final GuiScreen parent;
 	private final WDL wdl;
 	private final IConfiguration config;
-	private GuiTextField seedField;
+	private WDLTextField seedField;
 	private SettingButton generatorBtn;
 	private SettingButton generateStructuresBtn;
 	private WDLButton settingsPageBtn;
@@ -56,8 +57,9 @@ public class GuiWDLGenerator extends WDLScreen {
 		int seedWidth = font.getStringWidth(seedText + " ");
 
 		int y = this.height / 4 - 15;
-		this.seedField = this.addTextField(new GuiTextField(40, this.font,
-				this.width / 2 - (100 - seedWidth), y, 200 - seedWidth, 18));
+		this.seedField = this.addTextField(new WDLTextField(this.font,
+				this.width / 2 - (100 - seedWidth), y, 200 - seedWidth, 18,
+				new TextComponentString(this.seedText)));
 		this.seedField.setText(config.getValue(GeneratorSettings.SEED));
 		y += 22;
 		this.generatorBtn = this.addButton(new SettingButton(
@@ -115,7 +117,7 @@ public class GuiWDLGenerator extends WDLScreen {
 
 		String tooltip = null;
 
-		if (Utils.isHoveredTextBox(mouseX, mouseY, seedField)) {
+		if (seedField.isHovered()) {
 			tooltip = I18n.format("wdl.gui.generator.seed.description");
 		} else if (generatorBtn.isHovered()) {
 			tooltip = generatorBtn.getTooltip();

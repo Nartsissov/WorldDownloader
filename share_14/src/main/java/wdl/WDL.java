@@ -66,9 +66,8 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.EmptyChunk;
 import net.minecraft.world.storage.MapData;
-import net.minecraft.world.storage.SaveHandler;
-import net.minecraft.world.storage.SessionLockException;
-import net.minecraft.world.storage.WorldInfo;
+//import net.minecraft.world.storage.SaveHandler;
+//import net.minecraft.world.storage.WorldInfo;
 import wdl.WorldBackup.WorldBackupType;
 import wdl.api.APIImpl;
 import wdl.api.IPlayerInfoEditor;
@@ -88,6 +87,7 @@ import wdl.gui.GuiWDLMultiworldSelect;
 import wdl.gui.GuiWDLOverwriteChanges;
 import wdl.gui.GuiWDLSaveProgress;
 import wdl.update.GithubInfoGrabber;
+import wdl.versioned.ISaveHandlerWrapper;
 import wdl.versioned.VersionedFunctions;
 
 /**
@@ -165,7 +165,7 @@ public class WDL {
 	/**
 	 * For player files and the level.dat file.
 	 */
-	public SaveHandler saveHandler;
+	public ISaveHandlerWrapper saveHandler;
 	/**
 	 * For the chunks (despite the name it does also SAVE chunks)
 	 */
@@ -422,13 +422,18 @@ public class WDL {
 			return;
 		}
 
-		saveHandler = VersionedFunctions.getSaveHandler(minecraft, getWorldFolderName(worldName));
+		try {
+			saveHandler = VersionedFunctions.getSaveHandler(minecraft, getWorldFolderName(worldName));
+		} catch (Exception e) {
+			throw new RuntimeException(
+					"WorldDownloader: Couldn't create saveHandler for saving the world!", e);
+		}
 
-		runSanityCheck();
+		runSanityCheck(false);
 
 		minecraft.displayGuiScreen(null);
 
-		chunkLoader = WDLChunkLoader.create(this, saveHandler, worldClient.dimension);
+		chunkLoader = WDLChunkLoader.create(this, saveHandler, VersionedFunctions.getDimension(worldClient));
 		newTileEntities.values().forEach((m) -> {
 			m.clear();
 		});
@@ -469,7 +474,13 @@ public class WDL {
 			} catch (IOException ex) {
 				LOGGER.warn("Failed to close chunkLoader", ex);
 			}
+			try {
+				saveHandler.close();
+			} catch (Exception ex) {
+				LOGGER.warn("Failed to close saveHandler", ex);
+			}
 			chunkLoader = null;
+			saveHandler = null;
 			startOnChange = false;
 			saving = false;
 			downloading = false;
@@ -502,7 +513,7 @@ public class WDL {
 		Thread thread = new Thread(() -> {
 			try {
 				saveEverything();
-				minecraft.enqueue(() -> {
+				minecraft.execute(() -> {
 					WDL.saving = false;
 					onSaveComplete();
 				});
@@ -630,7 +641,7 @@ public class WDL {
 
 		try {
 			saveHandler.checkSessionLock();
-		} catch (SessionLockException e) {
+		} catch (Exception e) {
 			throw new RuntimeException(
 					"WorldDownloader: Couldn't get session lock for saving the world!", e);
 		}
@@ -659,11 +670,15 @@ public class WDL {
 			progressScreen.startMajorTask(
 					I18n.format("wdl.saveProgress.flushingIO.title"), 1);
 			progressScreen.setMinorTaskProgress(() -> {
-				return I18n.format("wdl.saveProgress.flushingIO.subtitle", chunkLoader.getNumPendingChunks());
+				WDLChunkLoader chunkLoader = WDL.this.chunkLoader;
+				if (chunkLoader != null) {
+					return I18n.format("wdl.saveProgress.flushingIO.subtitle", chunkLoader.getNumPendingChunks());
+				} else {
+					return "";
+				}
 			}, 1);
 
-			// XXX Still needed?
-			//ThreadedFileIOBase.getThreadedIOInstance().waitForFinish();
+			chunkLoader.flush();
 		} catch (Exception e) {
 			throw new RuntimeException("Threw exception waiting for asynchronous IO to finish. Hmmm.", e);
 		}
@@ -704,8 +719,17 @@ public class WDL {
 				}
 			}
 
+			File worldDirectory = saveHandler.getWorldDirectory();
+
 			try {
-				WorldBackup.backupWorld(saveHandler.getWorldDirectory(),
+				saveHandler.close();
+			} catch (Exception ex) {
+				LOGGER.warn("Failed to close saveHandler", ex);
+			}
+			saveHandler = null;
+
+			try {
+				WorldBackup.backupWorld(worldDirectory,
 						getWorldFolderName(worldName), backupType, new BackupState(),
 						serverProps.getValue(MiscSettings.BACKUP_COMMAND_TEMPLATE),
 						serverProps.getValue(MiscSettings.BACKUP_EXTENSION));
@@ -739,6 +763,7 @@ public class WDL {
 
 		CompoundNBT playerNBT = new CompoundNBT();
 		player.writeWithoutTypeId(playerNBT);
+		VersionedFunctions.writeAdditionalPlayerData(player, playerNBT);
 
 		progressScreen.setMinorTaskProgress(
 				I18n.format("wdl.saveProgress.playerData.editingNBT"), 2);
@@ -751,7 +776,7 @@ public class WDL {
 					I18n.format("wdl.saveProgress.playerData.extension",
 							info.getDisplayName()), taskNum);
 
-			info.mod.editPlayerInfo(player, saveHandler, playerNBT);
+			info.mod.editPlayerInfo(player, saveHandler.getWrapped(), playerNBT);
 
 			taskNum++;
 		}
@@ -785,14 +810,6 @@ public class WDL {
 	}
 
 	/**
-	 * Hardcoded, unchanging anvil save version ID.
-	 *
-	 * 19132: McRegion; 19133: Anvil.  If it's necessary to specify a new
-	 * version, many other parts of the mod will be broken anyways.
-	 */
-	private static final int ANVIL_SAVE_VERSION = 19133;
-
-	/**
 	 * Save the world metadata (time, gamemode, seed, ...) into the level.dat
 	 * file.
 	 */
@@ -809,15 +826,7 @@ public class WDL {
 		progressScreen.setMinorTaskProgress(
 				I18n.format("wdl.saveProgress.worldMetadata.creatingNBT"), 1);
 
-		// Set the save version, which isn't done automatically for some
-		// strange reason.
-		worldClient.getWorldInfo().setSaveVersion(ANVIL_SAVE_VERSION);
-
-		// cloneNBTCompound takes the PLAYER's nbt file, and puts it in the
-		// right place.
-		// This is needed because single player uses that data.
-		CompoundNBT worldInfoNBT = worldClient.getWorldInfo()
-				.cloneNBTCompound(playerInfoNBT);
+		CompoundNBT worldInfoNBT = VersionedFunctions.getWorldInfoNbt(worldClient, playerInfoNBT);
 
 		// There's a root tag that stores the above one.
 		CompoundNBT rootWorldInfoNBT = new CompoundNBT();
@@ -835,7 +844,7 @@ public class WDL {
 							info.getDisplayName()), taskNum);
 
 			info.mod.editWorldInfo(worldClient, worldClient.getWorldInfo(),
-					saveHandler, worldInfoNBT);
+					saveHandler.getWrapped(), worldInfoNBT);
 
 			taskNum++;
 		}
@@ -1049,24 +1058,20 @@ public class WDL {
 		File worldFolder = new File(savesDir, folder);
 		File levelDatFile = new File(worldFolder, "level.dat");
 
-		GameRules rules = new GameRules();
-
 		if (!levelDatFile.exists()) {
-			return rules;
+			return new GameRules();
 		}
 
-		CompoundNBT gameRules;
 		try (FileInputStream stream = new FileInputStream(levelDatFile)) {
 			CompoundNBT compound = CompressedStreamTools.readCompressed(stream);
-			gameRules = compound.getCompound("Data").getCompound("GameRules");
+			CompoundNBT gameRules = compound.getCompound("Data").getCompound("GameRules");
+
+			return VersionedFunctions.loadGameRules(gameRules);
 		} catch (Exception e) {
 			LOGGER.warn("[WDL] Error while loading existing gamerules; the defaults will be used instead: ", e);
 
-			return rules;
+			return new GameRules();
 		}
-
-		rules.read(gameRules);
-		return rules;
 	}
 
 	/**
@@ -1230,21 +1235,11 @@ public class WDL {
 			}
 		}
 
-		worldInfoNBT.putLong("RandomSeed", seed);
-
-		// MapFeatures
 		boolean mapFeatures = worldProps.getValue(GeneratorSettings.GENERATE_STRUCTURES);
-		worldInfoNBT.putBoolean("MapFeatures", mapFeatures);
-		// generatorName
 		String generatorName = worldProps.getValue(GeneratorSettings.GENERATOR_NAME);
-		worldInfoNBT.putString("generatorName", generatorName);
-		// generatorOptions
 		String generatorOptions = worldProps.getValue(GeneratorSettings.GENERATOR_OPTIONS);
-		// NOTE: The type varies between versions; in 1.12.2 it's a string tag and in 1.13 it's a compound.
-		worldInfoNBT.put("generatorOptions", VersionedFunctions.createGeneratorOptionsTag(generatorOptions));
-		// generatorVersion
 		int generatorVersion = worldProps.getValue(GeneratorSettings.GENERATOR_VERSION);
-		worldInfoNBT.putInt("generatorVersion", generatorVersion);
+		VersionedFunctions.writeGeneratorOptions(worldInfoNBT, seed, mapFeatures, generatorName, generatorOptions, generatorVersion);
 
 		// Weather
 		WorldSettings.Weather weather = worldProps.getValue(WorldSettings.WEATHER);
@@ -1301,7 +1296,8 @@ public class WDL {
 			LOGGER.info("Failed to call FML writeVersionData", ex);
 		}
 
-		try {
+		// XXX: Fix this and re-add it
+		/*try {
 			Class<?> fmlCommonHandler = Class.forName("net.minecraftforge.fml.common.FMLCommonHandler");
 			Object instance = fmlCommonHandler.getMethod("instance").invoke(null);
 			Method handleWorldDataSave = fmlCommonHandler.getMethod("handleWorldDataSave",
@@ -1309,7 +1305,7 @@ public class WDL {
 			handleWorldDataSave.invoke(instance, saveHandler, worldClient.getWorldInfo(), rootWorldInfoNBT);
 		} catch (Throwable ex) {
 			LOGGER.info("Failed to call FML handleWorldDataSave", ex);
-		}
+		}*/
 	}
 
 	/**
@@ -1558,8 +1554,10 @@ public class WDL {
 	 * the user is warned in chat.
 	 *
 	 * @see SanityCheck
+	 * @param stopOnError True if checking should stop on the first error.
+	 * @return false if any sanity checks failed; true otherwise.
 	 */
-	private void runSanityCheck() {
+	public boolean runSanityCheck(boolean stopOnError) {
 		Map<SanityCheck, Exception> failures = Maps.newEnumMap(SanityCheck.class);
 
 		for (SanityCheck check : SanityCheck.values()) {
@@ -1573,6 +1571,9 @@ public class WDL {
 			} catch (Exception ex) {
 				LOGGER.trace("{} failed", check, ex);
 				failures.put(check, ex);
+				if (stopOnError) {
+					break;
+				}
 			}
 		}
 		if (!failures.isEmpty()) {
@@ -1589,7 +1590,9 @@ public class WDL {
 				}
 				WDLMessages.chatMessage(WDL.serverProps, WDLMessageTypes.ERROR, "Please check the log for more info.");
 			}
+			return false;
 		}
+		return true;
 	}
 
 	/**

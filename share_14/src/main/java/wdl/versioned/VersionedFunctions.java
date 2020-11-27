@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -30,15 +30,20 @@ import javax.annotation.meta.TypeQualifierNickname;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ContainerBlock;
+import net.minecraft.client.GameSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.play.ClientPlayNetHandler;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.CompoundNBT;
@@ -46,17 +51,18 @@ import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
 import net.minecraft.network.play.client.CCustomPayloadPacket;
+import net.minecraft.network.play.server.SChatPacket;
 import net.minecraft.network.play.server.SCustomPayloadPlayPacket;
 import net.minecraft.network.play.server.SMapDataPacket;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.storage.MapData;
-import net.minecraft.world.storage.SaveHandler;
 import wdl.config.settings.GeneratorSettings.Generator;
 import wdl.handler.block.BlockHandler;
 import wdl.handler.blockaction.BlockActionHandler;
@@ -68,6 +74,19 @@ import wdl.handler.entity.EntityHandler;
  */
 public final class VersionedFunctions {
 	private VersionedFunctions() { throw new AssertionError(); }
+
+	public static final IDimensionWrapper NETHER = HandlerFunctions.NETHER;
+	public static final IDimensionWrapper OVERWORLD = HandlerFunctions.OVERWORLD;
+	public static final IDimensionWrapper END = HandlerFunctions.END;
+
+	/**
+	 * Gets the dimension of the given world.
+	 *
+	 * @return the dimension wrapper
+	 */
+	public static IDimensionWrapper getDimension(World world) {
+		return HandlerFunctions.getDimension(world);
+	}
 
 	/**
 	 * Returns true if the given world has skylight data.
@@ -139,9 +158,34 @@ public final class VersionedFunctions {
 	 * @param minecraft The Minecraft instance
 	 * @param worldName The name of the world.
 	 * @return The SaveHandler.
+	 * @throws Exception in some versions when e.g. an IO error occurs
 	 */
-	public static SaveHandler getSaveHandler(Minecraft minecraft, String worldName) {
+	public static ISaveHandlerWrapper getSaveHandler(Minecraft minecraft, String worldName) throws Exception {
 		return HandlerFunctions.getSaveHandler(minecraft, worldName);
+	}
+
+	/**
+	 * Writes additional player NBT not handled by {@link ClientPlayerEntity#writeAdditional}.
+	 *
+	 * Ideally, this should handle everything done by {@link ServerPlayerEntity#writeAdditional}.
+	 * Current implementations don't, though.  (TODO)
+	 *
+	 * @param player The player.
+	 * @param nbt The (partially already populated) nbt.
+	 */
+	public static void writeAdditionalPlayerData(ClientPlayerEntity player, CompoundNBT nbt) {
+		HandlerFunctions.writeAdditionalPlayerData(player, nbt);
+	}
+
+	/**
+	 * Gets the world info NBT, which goes into level.dat.
+	 *
+	 * @param world The world.
+	 * @param playerNBT The player's NBT data.
+	 * @return The world info NBT data.
+	 */
+	public static CompoundNBT getWorldInfoNbt(ClientWorld world, CompoundNBT playerNBT) {
+		return HandlerFunctions.getWorldInfoNbt(world, playerNBT);
 	}
 
 	/**
@@ -283,6 +327,15 @@ public final class VersionedFunctions {
 	}
 
 	/**
+	 * Creates a server chat packet.  Intended for use in tests.
+	 * @param message The chat message
+	 * @return The new packet.
+	 */
+	public static SChatPacket makeChatPacket(String message) {
+		return PacketFunctions.makeChatPacket(message);
+	}
+
+	/**
 	 * Gets the map data associated with the given packet.
 	 *
 	 * @param world The client world.
@@ -322,7 +375,7 @@ public final class VersionedFunctions {
 	 * the {@link MapData#dimension} field is a byte, while in other ones it is
 	 * a DimensionType (which might start out null).
 	 */
-	public static void setMapDimension(MapData map, DimensionType dim) {
+	public static void setMapDimension(MapData map, IDimensionWrapper dim) {
 		MapFunctions.setMapDimension(map, dim);
 	}
 
@@ -408,6 +461,15 @@ public final class VersionedFunctions {
 	}
 
 	/**
+	 * Creates a new GameRules object populated with the given NBT.
+	 *
+	 * @return The new GameRules object
+	 */
+	public static GameRules loadGameRules(CompoundNBT nbt) {
+		return GameRuleFunctions.loadGameRules(nbt);
+	}
+
+	/**
 	 * Returns true if the given generator can be used in this Minecraft version.
 	 * @param generator The generator
 	 * @return True if it is usable.
@@ -461,13 +523,17 @@ public final class VersionedFunctions {
 	public static final String VOID_FLAT_CONFIG = GeneratorFunctions.VOID_FLAT_CONFIG;
 
 	/**
-	 * Creates the generator options tag,
+	 * Writes the generator options into the given NBT.
 	 *
-	 * @param generatorOptions The content.  Either a string or an SNBT representation of the data.
-	 * @return An NBT tag of some type.
+	 * @param worldInfoNBT The Data tag for the world.
+	 * @param randomSeed The world's seed.
+	 * @param mapFeatures True if structures should be generated.
+	 * @param generatorName The name of the generator.
+	 * @param generatorOptions Parameters for the generator
+	 * @param generatorVersion The generator's version (used for default_1_1)
 	 */
-	public static INBT createGeneratorOptionsTag(String generatorOptions) {
-		return GeneratorFunctions.createGeneratorOptionsTag(generatorOptions);
+	public static void writeGeneratorOptions(CompoundNBT worldInfoNBT, long randomSeed, boolean mapFeatures, String generatorName, String generatorOptions, int generatorVersion) {
+		GeneratorFunctions.writeGeneratorOptions(worldInfoNBT, randomSeed, mapFeatures, generatorName, generatorOptions, generatorVersion);
 	}
 
 	/**
@@ -480,6 +546,35 @@ public final class VersionedFunctions {
 	 */
 	public static ClientPlayerEntity makePlayer(Minecraft minecraft, World world, ClientPlayNetHandler nhpc, ClientPlayerEntity base) {
 		return GuiFunctions.makePlayer(minecraft, world, nhpc, base);
+	}
+
+	/**
+	 * Gets the current point of view (1st/3rd person) for the given GameSettings.
+	 *
+	 * @param settings The GameSettings
+	 * @return An object of an unknown type.
+	 */
+	public static Object getPointOfView(GameSettings settings) {
+		return GuiFunctions.getPointOfView(settings);
+	}
+
+	/**
+	 * Sets first-person point of view for the given GameSettings.
+	 *
+	 * @param settings The GameSettings
+	 */
+	public static void setFirstPersonPointOfView(GameSettings settings) {
+		GuiFunctions.setFirstPersonPointOfView(settings);
+	}
+
+	/**
+	 * Restores the current point of view (1st/3rd person) for the given GameSettings.
+	 *
+	 * @param settings The GameSettings
+	 * @param value The object returned by an earlier call to {@link #getPointOfView}.
+	 */
+	public static void restorePointOfView(GameSettings settings, Object value) {
+		GuiFunctions.restorePointOfView(settings, value);
 	}
 
 	/**
@@ -543,6 +638,32 @@ public final class VersionedFunctions {
 	 */
 	public static void glTranslatef(float x, float y, float z) {
 		GuiFunctions.glTranslatef(x, y, z);
+	}
+
+	/**
+	 * Creates a link style for the given URL: blue, underlined, and with the right
+	 * click event.
+	 *
+	 * @param url The URL to open.
+	 * @return A new style
+	 */
+	public static Style createLinkFormatting(String url) {
+		return GuiFunctions.createLinkFormatting(url);
+	}
+
+	/**
+	 * Creates a {@link ConfirmScreen}.
+	 *
+	 * @param action The callback for when one of the buttons is clicked.
+	 * @param line1 The first line of text.
+	 * @param line2 The second line of text.
+	 * @param confirm Text for the confirm button.
+	 * @param cancel Text for the cancel button.
+	 * @return The new ConfirmScreen.
+	 */
+	public static ConfirmScreen createConfirmScreen(BooleanConsumer action, ITextComponent line1,
+			ITextComponent line2, ITextComponent confirm, ITextComponent cancel) {
+		return GuiFunctions.createConfirmScreen(action, line1, line2, confirm, cancel);
 	}
 
 	/**

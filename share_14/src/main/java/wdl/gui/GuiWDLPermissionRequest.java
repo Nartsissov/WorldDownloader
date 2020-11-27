@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -18,15 +18,15 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import wdl.WDL;
 import wdl.WDLPluginChannels;
 import wdl.gui.widget.ButtonDisplayGui;
 import wdl.gui.widget.TextList;
 import wdl.gui.widget.WDLButton;
 import wdl.gui.widget.WDLScreen;
+import wdl.gui.widget.WDLTextField;
 
 /**
  * GUI for requesting permissions.  Again, this is a work in progress.
@@ -44,7 +44,7 @@ public class GuiWDLPermissionRequest extends WDLScreen {
 	/**
 	 * Field in which the wanted request is entered.
 	 */
-	private TextFieldWidget requestField;
+	private WDLTextField requestField;
 	/**
 	 * Button for submitting the request.
 	 */
@@ -58,7 +58,7 @@ public class GuiWDLPermissionRequest extends WDLScreen {
 
 	@Override
 	public void init() {
-		this.list = this.addList(new TextList(minecraft, width, height, TOP_MARGIN, BOTTOM_MARGIN));
+		this.list = this.addList(new TextList(this, this.font, width, height, TOP_MARGIN, BOTTOM_MARGIN));
 
 		list.addLine("\u00A7c\u00A7lThis is a work in progress.");
 		list.addLine("You can request permissions in this GUI, although " +
@@ -76,15 +76,15 @@ public class GuiWDLPermissionRequest extends WDLScreen {
 					+ request.getValue() + "'.");
 		}
 
-		this.requestField = this.addTextField(new TextFieldWidget(font,
-				width / 2 - 155, 18, 150, 20, "Request"));
+		this.requestField = this.addTextField(new WDLTextField(font,
+				width / 2 - 155, 18, 150, 20, new StringTextComponent("Request")));
 
 		this.submitButton = this.addButton(new WDLButton(
 				width / 2 + 5, 18, 150, 20,
-				"Submit request") {
+				new StringTextComponent("Submit request")) {
 			public @Override void performAction() {
 				WDLPluginChannels.sendRequests();
-				setMessage("Submitted!");
+				setMessage(new StringTextComponent("Submitted!"));
 			}
 		});
 		this.submitButton.setEnabled(!(WDLPluginChannels.getRequests().isEmpty()));
@@ -93,15 +93,17 @@ public class GuiWDLPermissionRequest extends WDLScreen {
 				200, 20, this.parent));
 
 		this.addButton(new ButtonDisplayGui(this.width / 2 - 155, 39, 100, 20,
-				I18n.format("wdl.gui.permissions.current"), () -> new GuiWDLPermissions(this.parent, this.wdl)));
+				new TranslationTextComponent("wdl.gui.permissions.current"),
+				() -> new GuiWDLPermissions(this.parent, this.wdl)));
 		this.addButton(new WDLButton(this.width / 2 - 50, 39, 100, 20,
-				I18n.format("wdl.gui.permissions.request")) {
+				new TranslationTextComponent("wdl.gui.permissions.request")) {
 			public @Override void performAction() {
 				// Would open this GUI; do nothing.
 			}
 		});
 		this.addButton(new ButtonDisplayGui(this.width / 2 + 55, 39, 100, 20,
-				I18n.format("wdl.gui.permissions.overrides"), () -> new GuiWDLChunkOverrides(this.parent, this.wdl)));
+				new TranslationTextComponent("wdl.gui.permissions.overrides"),
+				() -> new GuiWDLChunkOverrides(this.parent, this.wdl)));
 	}
 
 	@Override

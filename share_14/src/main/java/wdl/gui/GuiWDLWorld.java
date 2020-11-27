@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -16,7 +16,7 @@ package wdl.gui;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import wdl.WDL;
 import wdl.config.IConfiguration;
@@ -80,12 +80,15 @@ public class GuiWDLWorld extends WDLScreen {
 		});
 		y += 22;
 		this.spawnTextY = y + 4;
-		this.spawnX = this.addTextField(new GuiNumericTextField(40, this.font,
-				this.width / 2 - 87, y, 50, 16));
-		this.spawnY = this.addTextField(new GuiNumericTextField(41, this.font,
-				this.width / 2 - 19, y, 50, 16));
-		this.spawnZ = this.addTextField(new GuiNumericTextField(42, this.font,
-				this.width / 2 + 48, y, 50, 16));
+		this.spawnX = this.addTextField(new GuiNumericTextField(this.font,
+				this.width / 2 - 87, y, 50, 16,
+				new TranslationTextComponent("wdl.gui.world.spawn.coord", "X")));
+		this.spawnY = this.addTextField(new GuiNumericTextField(this.font,
+				this.width / 2 - 19, y, 50, 16,
+				new TranslationTextComponent("wdl.gui.world.spawn.coord", "Y")));
+		this.spawnZ = this.addTextField(new GuiNumericTextField(this.font,
+				this.width / 2 + 48, y, 50, 16,
+				new TranslationTextComponent("wdl.gui.world.spawn.coord", "Z")));
 		spawnX.setValue(config.getValue(WorldSettings.SPAWN_X));
 		spawnY.setValue(config.getValue(WorldSettings.SPAWN_Y));
 		spawnZ.setValue(config.getValue(WorldSettings.SPAWN_Z));
@@ -94,7 +97,7 @@ public class GuiWDLWorld extends WDLScreen {
 		this.spawnZ.setMaxStringLength(7);
 		y += 18;
 		this.pickSpawnBtn = this.addButton(new WDLButton(this.width / 2, y, 100, 20,
-				I18n.format("wdl.gui.world.setSpawnToCurrentPosition")) {
+				new TranslationTextComponent("wdl.gui.world.setSpawnToCurrentPosition")) {
 			public @Override void performAction() {
 				setSpawnToPlayerPosition();
 			}
@@ -122,7 +125,7 @@ public class GuiWDLWorld extends WDLScreen {
 	 */
 	@Override
 	public void render(int mouseX, int mouseY, float partialTicks) {
-		Utils.drawListBackground(23, 32, 0, 0, height, width);
+		this.drawListBackground(23, 32, 0, 0, height, width);
 
 		if (this.showSpawnFields) {
 			this.drawString(this.font, "X:", this.width / 2 - 99,
@@ -135,7 +138,7 @@ public class GuiWDLWorld extends WDLScreen {
 
 		super.render(mouseX, mouseY, partialTicks);
 
-		String tooltip = null;
+		ITextComponent tooltip = null;
 
 		if (allowCheatsBtn.isHovered()) {
 			tooltip = allowCheatsBtn.getTooltip();
@@ -148,18 +151,18 @@ public class GuiWDLWorld extends WDLScreen {
 		} else if (spawnBtn.isHovered()) {
 			tooltip = spawnBtn.getTooltip();
 		} else if (pickSpawnBtn.isHovered()) {
-			tooltip = I18n.format("wdl.gui.world.setSpawnToCurrentPosition.description");
+			tooltip = new TranslationTextComponent("wdl.gui.world.setSpawnToCurrentPosition.description");
 		} else if (showSpawnFields) {
-			if (Utils.isHoveredTextBox(mouseX, mouseY, spawnX)) {
-				tooltip = I18n.format("wdl.gui.world.spawnPos.description", "X");
-			} else if (Utils.isHoveredTextBox(mouseX, mouseY, spawnY)) {
-				tooltip = I18n.format("wdl.gui.world.spawnPos.description", "Y");
-			} else if (Utils.isHoveredTextBox(mouseX, mouseY, spawnZ)) {
-				tooltip = I18n.format("wdl.gui.world.spawnPos.description", "Z");
+			if (spawnX.isHovered()) {
+				tooltip = new TranslationTextComponent("wdl.gui.world.spawnPos.description", "X");
+			} else if (spawnY.isHovered()) {
+				tooltip = new TranslationTextComponent("wdl.gui.world.spawnPos.description", "Y");
+			} else if (spawnZ.isHovered()) {
+				tooltip = new TranslationTextComponent("wdl.gui.world.spawnPos.description", "Z");
 			}
 		}
 
-		Utils.drawGuiInfoBox(tooltip, width, height, 48);
+		this.drawGuiInfoBox(tooltip, width, height, 48);
 	}
 
 	/**

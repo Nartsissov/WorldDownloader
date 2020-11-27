@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -22,14 +22,15 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.SoundEvents;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import wdl.VersionConstants;
 import wdl.WDL;
-import wdl.gui.widget.WDLButton;
-import wdl.gui.widget.WDLScreen;
 import wdl.gui.widget.ButtonDisplayGui;
 import wdl.gui.widget.GuiList;
 import wdl.gui.widget.GuiList.GuiListEntry;
 import wdl.gui.widget.TextList;
+import wdl.gui.widget.WDLButton;
+import wdl.gui.widget.WDLScreen;
 import wdl.update.Release;
 import wdl.update.WDLUpdateChecker;
 import wdl.versioned.VersionedFunctions;
@@ -48,7 +49,7 @@ public class GuiWDLUpdates extends WDLScreen {
 
 	private class UpdateList extends GuiList<UpdateList.VersionEntry> {
 		public UpdateList() {
-			super(GuiWDLUpdates.this.minecraft, GuiWDLUpdates.this.width,
+			super(GuiWDLUpdates.this, GuiWDLUpdates.this.width,
 					GuiWDLUpdates.this.height, TOP_MARGIN,
 					GuiWDLUpdates.this.height - BOTTOM_MARGIN,
 					(font.FONT_HEIGHT + 1) * 6 + 2);
@@ -75,7 +76,7 @@ public class GuiWDLUpdates extends WDLScreen {
 				this.title = buildReleaseTitle(release);
 				this.caption = buildVersionInfo(release);
 
-				List<String> body = Utils.wordWrap(release.textOnlyBody, getEntryWidth());
+				List<String> body = GuiWDLUpdates.this.wordWrap(release.textOnlyBody, getEntryWidth());
 
 				body1 = (body.size() >= 1 ? body.get(0) : "");
 				body2 = (body.size() >= 2 ? body.get(1) : "");
@@ -102,12 +103,12 @@ public class GuiWDLUpdates extends WDLScreen {
 					title = this.title;
 				}
 
-				font.drawString(title, x, y + fontHeight * 0, 0xFFFFFF);
-				font.drawString(caption, x, y + fontHeight * 1, 0x808080);
-				font.drawString(body1, x, y + fontHeight * 2, 0xFFFFFF);
-				font.drawString(body2, x, y + fontHeight * 3, 0xFFFFFF);
-				font.drawString(body3, x, y + fontHeight * 4, 0xFFFFFF);
-				font.drawString(time, x, y + fontHeight * 5, 0x808080);
+				drawString(font, title, x, y + fontHeight * 0, 0xFFFFFF);
+				drawString(font, caption, x, y + fontHeight * 1, 0x808080);
+				drawString(font, body1, x, y + fontHeight * 2, 0xFFFFFF);
+				drawString(font, body2, x, y + fontHeight * 3, 0xFFFFFF);
+				drawString(font, body3, x, y + fontHeight * 4, 0xFFFFFF);
+				drawString(font, time, x, y + fontHeight * 5, 0x808080);
 
 				if (mouseX > x && mouseX < x + entryWidth && mouseY > y
 						&& mouseY < y + entryHeight) {
@@ -304,7 +305,7 @@ public class GuiWDLUpdates extends WDLScreen {
 		public void init() {
 			this.addButton(new WDLButton(
 					this.width / 2 - 155, 18, 150, 20,
-					I18n.format("wdl.gui.updates.update.viewOnline")) {
+					new TranslationTextComponent("wdl.gui.updates.update.viewOnline")) {
 				public @Override void performAction() {
 					VersionedFunctions.openLink(release.URL);
 				}
@@ -312,7 +313,7 @@ public class GuiWDLUpdates extends WDLScreen {
 			if (release.hiddenInfo != null) {
 				this.addButton(new WDLButton(
 						this.width / 2 + 5, 18, 150, 20,
-						I18n.format("wdl.gui.updates.update.viewForumPost")) {
+						new TranslationTextComponent("wdl.gui.updates.update.viewForumPost")) {
 					public @Override void performAction() {
 						VersionedFunctions.openLink(release.hiddenInfo.post);
 					}
@@ -321,7 +322,7 @@ public class GuiWDLUpdates extends WDLScreen {
 			this.addButton(new ButtonDisplayGui(
 					this.width / 2 - 100, this.height - 29, 200, 20, this.parent));
 
-			TextList list = new TextList(minecraft, width, height, TOP_MARGIN, BOTTOM_MARGIN);
+			TextList list = new TextList(this, this.font, width, height, TOP_MARGIN, BOTTOM_MARGIN);
 
 			list.addLine(buildReleaseTitle(release));
 			list.addLine(I18n.format("wdl.gui.updates.update.releaseDate", release.date));

@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2018 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -33,6 +33,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.event.HoverEvent;
 import net.minecraft.util.text.event.HoverEvent.Action;
@@ -217,7 +218,7 @@ public class WDLMessages {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i] == null) {
 				StringTextComponent text = new StringTextComponent("null");
-				text.getStyle().setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent("~~null~~")));
+				text.setStyle(text.getStyle().setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent("~~null~~"))));
 				args[i] = text;
 			} else if (args[i] instanceof Entity) {
 				Entity e = (Entity)args[i];
@@ -235,7 +236,7 @@ public class WDLMessages {
 			}
 		}
 
-		final ITextComponent component;
+		final TextComponent component;
 		if (I18n.hasKey(translationKey)) {
 			component = new TranslationTextComponent(translationKey, args);
 		} else {
@@ -283,20 +284,19 @@ public class WDLMessages {
 
 		// Can't use a TranslationTextComponent here because it doesn't like new lines.
 		String tooltipText = I18n.format("wdl.messages.tooltip",
-				type.getDisplayName().getFormattedText()).replace("\\n", "\n");
+				type.getDisplayName().getString()).replace("\\n", "\n"); // XXX should be formatted
 		ITextComponent tooltip = new StringTextComponent(tooltipText);
 
-		ITextComponent text = new StringTextComponent("");
+		TextComponent text = new StringTextComponent("");
 
-		ITextComponent header = new StringTextComponent("[WorldDL]");
-		header.getStyle().setColor(type.getTitleColor());
-		header.getStyle().setHoverEvent(
-				new HoverEvent(Action.SHOW_TEXT, tooltip));
+		StringTextComponent header = new StringTextComponent("[WorldDL]");
+		header.setStyle(header.getStyle().setColor(type.getTitleColor())
+				.setHoverEvent(new HoverEvent(Action.SHOW_TEXT, tooltip)));
 
 		// If the message has its own style, it'll use that instead.
 		// TODO: Better way?
 		StringTextComponent messageFormat = new StringTextComponent(" ");
-		messageFormat.getStyle().setColor(type.getTextColor());
+		messageFormat.setStyle(messageFormat.getStyle().setColor(type.getTextColor()));
 
 		messageFormat.appendSibling(message);
 		text.appendSibling(header);
@@ -306,7 +306,7 @@ public class WDLMessages {
 			Minecraft minecraft = Minecraft.getInstance();
 			// Cross-thread calls to printChatMessage are illegal in 1.13 due to accessing
 			// the font renderer; add a scheduled task instead.
-			minecraft.enqueue(() -> minecraft.ingameGUI.getChatGUI().printChatMessage(text));
+			minecraft.execute(() -> minecraft.ingameGUI.getChatGUI().printChatMessage(text));
 		} else {
 			LOGGER.info(text.getString());
 		}
@@ -326,12 +326,13 @@ public class WDLMessages {
 				String displayGroup = EntityUtils.getDisplayGroup(group);
 				wdlName = new StringTextComponent(displayIdentifier);
 
-				ITextComponent hoverText = new StringTextComponent("");
+				TextComponent hoverText = new StringTextComponent("");
 				hoverText.appendSibling(new TranslationTextComponent("wdl.messages.entityData.internalName", identifier));
 				hoverText.appendText("\n");
 				hoverText.appendSibling(new TranslationTextComponent("wdl.messages.entityData.group", displayGroup, group));
 
-				wdlName.getStyle().setHoverEvent(new HoverEvent(Action.SHOW_TEXT, hoverText));
+				((TextComponent)wdlName).setStyle(
+						wdlName.getStyle().setHoverEvent(new HoverEvent(Action.SHOW_TEXT, hoverText)));
 			}
 		} catch (Exception ex) {
 			LOGGER.warn("[WDL] Exception in entity name!", ex);
@@ -349,7 +350,7 @@ public class WDLMessages {
 
 	@Nonnull
 	private static ITextComponent convertThrowableToComponent(@Nonnull Throwable t) {
-		ITextComponent component = new StringTextComponent(t.toString());
+		StringTextComponent component = new StringTextComponent(t.toString());
 
 		// https://stackoverflow.com/a/1149721/3991344
 		StringWriter sw = new StringWriter();
@@ -362,7 +363,7 @@ public class WDLMessages {
 		HoverEvent event = new HoverEvent(Action.SHOW_TEXT,
 				new StringTextComponent(exceptionAsString));
 
-		component.getStyle().setHoverEvent(event);
+		component.setStyle(component.getStyle().setHoverEvent(event));
 
 		return component;
 	}

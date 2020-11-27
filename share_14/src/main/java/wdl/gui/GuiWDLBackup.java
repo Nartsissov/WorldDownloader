@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -20,10 +20,9 @@ import javax.annotation.Nullable;
 
 import com.google.common.io.Files;
 
-import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import wdl.WDL;
 import wdl.WorldBackup;
@@ -34,6 +33,8 @@ import wdl.config.settings.MiscSettings;
 import wdl.gui.widget.ButtonDisplayGui;
 import wdl.gui.widget.WDLButton;
 import wdl.gui.widget.WDLScreen;
+import wdl.gui.widget.WDLTextField;
+import wdl.versioned.VersionedFunctions;
 
 /**
  * GUI allowing control over the way the world is backed up.
@@ -44,14 +45,14 @@ public class GuiWDLBackup extends WDLScreen {
 	private final WDL wdl;
 	private final IConfiguration config;
 
-	private String description;
+	private final ITextComponent description;
 
 	private WorldBackupType backupType;
 	private WDLButton backupTypeButton;
 	private WDLButton doneButton;
-	private TextFieldWidget customBackupCommandTemplateFld;
+	private WDLTextField customBackupCommandTemplateFld;
 	private String customBackupCommandTemplate;
-	private TextFieldWidget customBackupExtensionFld;
+	private WDLTextField customBackupExtensionFld;
 	private String customBackupExtension;
 	private long checkValidTime = 0;
 	private volatile boolean checkingCommandValid = false;
@@ -68,9 +69,9 @@ public class GuiWDLBackup extends WDLScreen {
 		this.customBackupCommandTemplate = config.getValue(MiscSettings.BACKUP_COMMAND_TEMPLATE);
 		this.customBackupExtension = config.getValue(MiscSettings.BACKUP_EXTENSION);
 
-		this.description = I18n.format("wdl.gui.backup.description1") + "\n\n"
-				+ I18n.format("wdl.gui.backup.description2") + "\n\n"
-				+ I18n.format("wdl.gui.backup.description3");
+		this.description = new TranslationTextComponent("wdl.gui.backup.description1").appendText("\n\n")
+				.appendSibling(new TranslationTextComponent("wdl.gui.backup.description2")).appendText("\n\n")
+				.appendSibling(new TranslationTextComponent("wdl.gui.backup.description3"));
 	}
 
 	@Override
@@ -90,14 +91,14 @@ public class GuiWDLBackup extends WDLScreen {
 			}
 		});
 
-		customBackupCommandTemplateFld = this.addTextField(new TextFieldWidget(font,
+		customBackupCommandTemplateFld = this.addTextField(new WDLTextField(font,
 				width / 2 - 100, 54, 200, 20,
-				I18n.format("wdl.gui.backup.customCommandTemplate")));
+				new TranslationTextComponent("wdl.gui.backup.customCommandTemplate")));
 		customBackupCommandTemplateFld.setMaxStringLength(255);
 		customBackupCommandTemplateFld.setText(this.customBackupCommandTemplate);
-		customBackupExtensionFld = this.addTextField(new TextFieldWidget(font,
+		customBackupExtensionFld = this.addTextField(new WDLTextField(font,
 				width / 2 + 160, 54, 40, 20,
-				I18n.format("wdl.gui.backup.customExtension")));
+				new TranslationTextComponent("wdl.gui.backup.customExtension")));
 		customBackupExtensionFld.setText(this.customBackupExtension);
 
 		updateFieldVisibility();
@@ -106,8 +107,8 @@ public class GuiWDLBackup extends WDLScreen {
 				200, 20, this::getParentOrWarning));
 	}
 
-	private String getBackupButtonText() {
-		return I18n.format("wdl.gui.backup.backupMode",
+	private ITextComponent getBackupButtonText() {
+		return new TranslationTextComponent("wdl.gui.backup.backupMode",
 				backupType.getDescription());
 	}
 
@@ -259,7 +260,7 @@ public class GuiWDLBackup extends WDLScreen {
 
 	@Override
 	public void render(int mouseX, int mouseY, float partialTicks) {
-		Utils.drawListBackground(23, 32, 0, 0, height, width);
+		this.drawListBackground(23, 32, 0, 0, height, width);
 
 		super.render(mouseX, mouseY, partialTicks);
 
@@ -280,7 +281,7 @@ public class GuiWDLBackup extends WDLScreen {
 			}
 		}
 		if (commandInvalidReason != null) {
-			List<String> lines = Utils.wordWrap(commandInvalidReason, this.width - 50);
+			List<String> lines = this.wordWrap(commandInvalidReason, this.width - 50);
 			int y = 80;
 			for (String line : lines) {
 				this.drawString(font, line, 50, y, 0xFF0000);
@@ -288,14 +289,14 @@ public class GuiWDLBackup extends WDLScreen {
 			}
 		}
 
-		if (Utils.isHoveredTextBox(mouseX, mouseY, customBackupCommandTemplateFld)) {
-			Utils.drawGuiInfoBox(I18n.format("wdl.gui.backup.customCommandTemplate.description"), width, height, 48);
-		} else if (Utils.isHoveredTextBox(mouseX, mouseY, customBackupExtensionFld)) {
-			Utils.drawGuiInfoBox(I18n.format("wdl.gui.backup.customExtension.description"), width, height, 48);
+		if (customBackupCommandTemplateFld.isHovered()) {
+			this.drawGuiInfoBox(new TranslationTextComponent("wdl.gui.backup.customCommandTemplate.description"), width, height, 48);
+		} else if (customBackupExtensionFld.isHovered()) {
+			this.drawGuiInfoBox(new TranslationTextComponent("wdl.gui.backup.customExtension.description"), width, height, 48);
 		} else if (commandInvalidReason == null || backupTypeButton.isHovered()) {
 			// Only draw the large description if the command is valid (i.e. there isn't other text)
 			// or the mouse is directly over the backup type button (i.e. the info is useful)
-			Utils.drawGuiInfoBox(description, width - 50, 3 * this.height / 5, width,
+			this.drawGuiInfoBox(description, width - 50, 3 * this.height / 5, width,
 					height, 48);
 		}
 	}
@@ -304,7 +305,7 @@ public class GuiWDLBackup extends WDLScreen {
 		if (this.isCommandValid) {
 			return parent;
 		} else {
-			return new ConfirmScreen((result) -> {
+			return VersionedFunctions.createConfirmScreen((result) -> {
 				if (result) {
 					minecraft.displayGuiScreen(parent);
 				} else {
@@ -312,7 +313,7 @@ public class GuiWDLBackup extends WDLScreen {
 				}
 			}, new TranslationTextComponent("wdl.gui.backup.customCommandFailed.line1"),
 					new TranslationTextComponent("wdl.gui.backup.customCommandFailed.line2"),
-					I18n.format("gui.yes"), I18n.format("gui.cancel"));
+					new TranslationTextComponent("gui.yes"), new TranslationTextComponent("gui.cancel"));
 		}
 	}
 }

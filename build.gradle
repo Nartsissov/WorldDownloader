@@ -20,7 +20,7 @@ buildscript {
         // NOTE: must be compiled manually, not currently in any repos
         // Download https://github.com/Pokechu22/ForgeGradle-extensions and
         // then run 'gradlew install'
-        // classpath 'pokechu22.test.begradle:begradle:0.2.3-SNAPSHOT:fg2'
+        // classpath 'pokechu22.test.begradle:begradle:0.2.6:fg2'
     }
 }
 
@@ -43,22 +43,24 @@ project(':1.12.1').evaluationDependsOn(':share')
 project(':1.12.1-litemod').evaluationDependsOn(':1.12.1')
 project(':1.12.2').evaluationDependsOn(':share')
 project(':1.12.2-litemod').evaluationDependsOn(':1.12.2')
-if (ENABLE_UNSTABLE_BUILDS) { // see gradle.properties
-    project(':1.13.0').evaluationDependsOn(':share')
-    project(':1.13.1').evaluationDependsOn(':share')
-    project(':1.13.2').evaluationDependsOn(':share')
-    project(':1.14.0').evaluationDependsOn(':share')
-}
+project(':1.13.0').evaluationDependsOn(':share')
+project(':1.13.1').evaluationDependsOn(':share')
+project(':1.13.2').evaluationDependsOn(':share')
+project(':1.14.0').evaluationDependsOn(':share')
 project(':1.14.1').evaluationDependsOn(':share')
 project(':1.14.2').evaluationDependsOn(':share')
 project(':1.14.3').evaluationDependsOn(':share')
 project(':1.14.4').evaluationDependsOn(':share')
-if (ENABLE_UNSTABLE_BUILDS) { // This builds without issue (apart from tests), but cannot be used easily
-    project(':1.14.4-forge').evaluationDependsOn(':1.14.4')
-}
+project(':1.14.4-forge').evaluationDependsOn(':1.14.4')
 project(':1.15.0').evaluationDependsOn(':share')
 project(':1.15.1').evaluationDependsOn(':share')
 project(':1.15.2').evaluationDependsOn(':share')
+project(':1.15.2-forge').evaluationDependsOn(':1.15.2')
+project(':1.16.1').evaluationDependsOn(':share')
+project(':1.16.2').evaluationDependsOn(':share')
+project(':1.16.3').evaluationDependsOn(':share')
+project(':1.16.3-forge').evaluationDependsOn(':1.16.3')
+project(':1.16.4').evaluationDependsOn(':share')
 
 allprojects {
     tasks.withType(JavaCompile) {

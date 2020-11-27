@@ -14,8 +14,9 @@
 package wdl.gui.widget;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import wdl.versioned.VersionedFunctions;
 
 /**
@@ -31,16 +32,16 @@ public class GuiSlider extends ExtButton {
 	/**
 	 * I18n key for this slider.
 	 */
-	private final String text;
+	private final String translationKey;
 	/**
 	 * Maximum value for the slider.
 	 */
 	private final int max;
 
-	public GuiSlider(int x, int y, int width, int height, String text, int value, int max) {
-		super(x, y, width, height, text);
+	public GuiSlider(int x, int y, int width, int height, String translationKey, int value, int max) {
+		super(x, y, width, height, new TranslationTextComponent(translationKey, value));
 
-		this.text = text;
+		this.translationKey = translationKey;
 		this.max = max;
 
 		setValue(value);
@@ -66,7 +67,7 @@ public class GuiSlider extends ExtButton {
 				/ (float)(this.width - 8);
 		this.sliderValue = MathHelper.clamp(this.sliderValue, 0.0F,
 				1.0F);
-		setMessage(I18n.format(text, getValue()));
+		setMessage(new TranslationTextComponent(translationKey, getValue()));
 	}
 
 	@Override
@@ -79,12 +80,12 @@ public class GuiSlider extends ExtButton {
 		this.sliderValue = MathHelper.clamp(this.sliderValue, 0.0F,
 				1.0F);
 
-		setMessage(I18n.format(text, getValue()));
+		setMessage(new TranslationTextComponent(translationKey, getValue()));
 	}
 
 	@Override
-	protected String getNarrationMessage() {
-		return I18n.format("gui.narrate.slider", this.getMessage());
+	public ITextComponent getNarratorMessage() {
+		return new TranslationTextComponent("gui.narrate.slider", this.getMessage());
 	}
 
 	@Override
@@ -130,6 +131,6 @@ public class GuiSlider extends ExtButton {
 	public void setValue(int value) {
 		this.sliderValue = value / (float)max;
 
-		setMessage(I18n.format(text, getValue()));
+		setMessage(new TranslationTextComponent(translationKey, getValue()));
 	}
 }

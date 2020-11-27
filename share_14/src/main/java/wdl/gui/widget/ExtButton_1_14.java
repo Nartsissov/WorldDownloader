@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2018 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -15,6 +15,8 @@ package wdl.gui.widget;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.widget.button.AbstractButton;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 
 /**
  * Extendible button, to deal with changing method signatures between versions.
@@ -32,8 +34,8 @@ abstract class ExtButton extends AbstractButton implements IExtButton {
 	@Deprecated
 	protected static final Void active = null;
 
-	public ExtButton(int x, int y, int widthIn, int heightIn, String buttonText) {
-		super(x, y, widthIn, heightIn, buttonText);
+	public ExtButton(int x, int y, int widthIn, int heightIn, ITextComponent buttonText) {
+		super(x, y, widthIn, heightIn, buttonText.getFormattedText());
 	}
 
 	@Override
@@ -85,8 +87,18 @@ abstract class ExtButton extends AbstractButton implements IExtButton {
 	}
 
 	@Override
-	public void setMessage(String message) {
-		super.setMessage(message);
+	public void setMessage(ITextComponent message) {
+		super.setMessage(message.getFormattedText());
+	}
+
+	@Override
+	protected final String getNarrationMessage() {
+		return getNarratorMessage().getString();
+	}
+
+	@Override
+	public ITextComponent getNarratorMessage() {
+		return new StringTextComponent(super.getNarrationMessage());
 	}
 
 	@Override

@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2018-2019 Pokechu22, julialy
+ * Copyright (c) 2018-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -18,6 +18,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.ShortList;
@@ -41,15 +43,12 @@ import net.minecraft.world.chunk.storage.ChunkLoader;
 import net.minecraft.world.chunk.storage.IOWorker;
 import net.minecraft.world.chunk.storage.RegionFile;
 import net.minecraft.world.chunk.storage.RegionFileCache;
-import net.minecraft.world.dimension.Dimension;
-import net.minecraft.world.dimension.EndDimension;
-import net.minecraft.world.dimension.NetherDimension;
 import net.minecraft.world.gen.Heightmap;
 import net.minecraft.world.lighting.WorldLightManager;
 import net.minecraft.world.server.ServerTickList;
-import net.minecraft.world.storage.SaveHandler;
-import net.minecraft.world.storage.SessionLockException;
 import wdl.config.settings.MiscSettings;
+import wdl.versioned.IDimensionWrapper;
+import wdl.versioned.ISaveHandlerWrapper;
 import wdl.versioned.VersionedFunctions;
 
 /**
@@ -64,21 +63,22 @@ abstract class WDLChunkLoaderBase extends ChunkLoader {
 	 * Gets the save folder for the given WorldProvider, respecting Forge's
 	 * dimension names if forge is present.
 	 */
-	protected static File getWorldSaveFolder(SaveHandler handler,
-			Dimension dimension) {
+	protected static File getWorldSaveFolder(ISaveHandlerWrapper handler,
+			IDimensionWrapper dimension) {
 		File baseFolder = handler.getWorldDirectory();
 		// XXX No forge support at this time
 
 		File dimensionFolder;
 		if (WDL.serverProps.getValue(MiscSettings.FORCE_DIMENSION_TO_OVERWORLD)) {
 			dimensionFolder = baseFolder;
-		} else if (dimension instanceof NetherDimension) {
-			dimensionFolder = new File(baseFolder, "DIM-1");
-		} else if (dimension instanceof EndDimension) {
-			dimensionFolder = new File(baseFolder, "DIM1");
 		} else {
-			// Assume that this is the overworld.
-			dimensionFolder = baseFolder;
+			@Nullable String dimName = dimension.getFolderName();
+			if (dimName == null) {
+				// Assume that this is the overworld.
+				dimensionFolder = baseFolder;
+			} else {
+				dimensionFolder = new File(baseFolder, dimName);
+			}
 		}
 
 		return new File(dimensionFolder, "region");
@@ -112,7 +112,7 @@ abstract class WDLChunkLoaderBase extends ChunkLoader {
 	 * Note that while the normal implementation swallows Exceptions, this
 	 * version does not.
 	 */
-	public synchronized void saveChunk(World world, IChunk chunk) throws SessionLockException, IOException {
+	public synchronized void saveChunk(World world, IChunk chunk) throws Exception {
 		wdl.saveHandler.checkSessionLock();
 
 		CompoundNBT levelTag = writeChunkToNBT((Chunk)chunk, world);
@@ -198,7 +198,7 @@ abstract class WDLChunkLoaderBase extends ChunkLoader {
 
 		BiomeContainer biomes = chunk.getBiomes();
 		if (biomes != null) {
-			compound.putIntArray("Biomes", biomes.getIdArray());
+			compound.putIntArray("Biomes", biomes.getBiomeIds());
 		}
 
 		chunk.setHasEntities(false);
@@ -225,7 +225,7 @@ abstract class WDLChunkLoaderBase extends ChunkLoader {
 		// XXX: These are new, and they might conflict with the other one.  Not sure which should be used.
 		if (chunk.getBlocksToBeTicked() instanceof SerializableTickList) {
 			compound.put("TileTicks", ((SerializableTickList<?>) chunk.getBlocksToBeTicked())
-					.func_219498_a(world.getGameTime()));
+					.save(world.getGameTime()));
 		}
 
 		if (chunk.getFluidsToBeTicked() instanceof ChunkPrimerTickList) {
@@ -234,7 +234,7 @@ abstract class WDLChunkLoaderBase extends ChunkLoader {
 
 		if (chunk.getFluidsToBeTicked() instanceof SerializableTickList) {
 			compound.put("LiquidTicks", ((SerializableTickList<?>) chunk.getFluidsToBeTicked())
-					.func_219498_a(world.getGameTime()));
+					.save(world.getGameTime()));
 		}
 
 		CompoundNBT heightMaps = new CompoundNBT();
@@ -287,5 +287,9 @@ abstract class WDLChunkLoaderBase extends ChunkLoader {
 	 */
 	protected RegionFile createRegionFile(File file) throws IOException {
 		return new RegionFile(file, this.chunkSaveLocation);
+	}
+
+	public void flush() {
+		this.func_227079_i_();
 	}
 }

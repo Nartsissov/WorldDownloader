@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2018 Pokechu22, julialy
+ * Copyright (c) 2018-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -29,6 +29,11 @@ import com.mojang.brigadier.context.CommandContextBuilder;
 import com.mojang.brigadier.tree.CommandNode;
 
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.ICommandSource;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.math.vector.Vector2f;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.GameRules.IRuleEntryVisitor;
 import net.minecraft.world.GameRules.RuleKey;
@@ -43,6 +48,8 @@ import wdl.versioned.VersionedFunctions.GameRuleType;
 final class GameRuleFunctions {
 	private GameRuleFunctions() { throw new AssertionError(); }
 	private static final Logger LOGGER = LogManager.getLogger();
+	private static final CommandSource DUMMY_COMMAND_SOURCE =
+			new CommandSource(ICommandSource.DUMMY, Vector3d.ZERO, Vector2f.ZERO, null, 0, "", new StringTextComponent(""), null, null);
 
 	private static class RuleInfo<T extends GameRules.RuleValue<T>> {
 		public RuleInfo(RuleKey<T> key, RuleType<T> type) {
@@ -68,7 +75,7 @@ final class GameRuleFunctions {
 		// I'm not particularly happy about the lack of a public generalized string set method...
 		public void set(GameRules rules, String value) {
 			try {
-				CommandContextBuilder<CommandSource> ctxBuilder = new CommandContextBuilder<>(null, null, null, 0);
+				CommandContextBuilder<CommandSource> ctxBuilder = new CommandContextBuilder<>(null, DUMMY_COMMAND_SOURCE, null, 0);
 				StringReader reader = new StringReader(value);
 				this.commandNode.parse(reader, ctxBuilder);
 				rules.get(this.key).updateValue(ctxBuilder.build(value), "value");
@@ -136,5 +143,14 @@ final class GameRuleFunctions {
 						(a, b) -> {throw new IllegalArgumentException("Mutliple rules with the same name!  " + a + "," + b);},
 						TreeMap::new));
 		return Collections.unmodifiableMap(result);
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#loadGameRules
+	 */
+	static GameRules loadGameRules(CompoundNBT tag) {
+		GameRules rules = new GameRules();
+		rules.read(tag);
+		return rules;
 	}
 }

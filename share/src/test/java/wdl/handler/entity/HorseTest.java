@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2018 Pokechu22, julialy
+ * Copyright (c) 2018-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -22,9 +22,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.spongepowered.lwts.runner.DelegateRunner.DelegatedRunWith;
 
 import net.minecraft.entity.passive.EquineEntity;
 import net.minecraft.init.Blocks;
@@ -38,7 +38,7 @@ import wdl.ReflectionUtils;
 import wdl.VersionConstants;
 import wdl.handler.HandlerException;
 
-@RunWith(Parameterized.class)
+@DelegatedRunWith(Parameterized.class)
 public class HorseTest<T extends EquineEntity> extends AbstractEntityHandlerTest<T, ContainerHorseInventory, HorseHandler> {
 	private static enum HorseType {
 		HORSE("minecraft:horse", "net.minecraft.entity.passive.EntityHorse", 0, false),
@@ -169,7 +169,7 @@ public class HorseTest<T extends EquineEntity> extends AbstractEntityHandlerTest
 		}
 		addEntity(horse);
 
-		runHandler(horse.getEntityId(), createClientContainer(horse));
+		runHandler(horse.getEntityId(), createClientContainer(horse, true));
 
 		checkAllEntities();
 	}

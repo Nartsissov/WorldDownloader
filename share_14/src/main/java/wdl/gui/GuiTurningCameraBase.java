@@ -22,7 +22,7 @@ import net.minecraft.entity.player.ChatVisibility;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.text.ITextComponent;
 import wdl.WDL;
 import wdl.gui.widget.WDLScreen;
@@ -40,9 +40,9 @@ public abstract class GuiTurningCameraBase extends WDLScreen {
 	 */
 	private float yaw;
 	/**
-	 * The previous mode for the camera (First person, 3rd person, ect)
+	 * The previous mode for the camera (First person, 3rd person, etc)
 	 */
-	private int oldCameraMode;
+	private Object oldCameraMode;
 	/**
 	 * The previous state as to whether the hud was hidden with F1.
 	 */
@@ -91,7 +91,7 @@ public abstract class GuiTurningCameraBase extends WDLScreen {
 					VersionedFunctions.getEntityY(wdl.player), VersionedFunctions.getEntityZ(wdl.player),
 					wdl.player.rotationYaw, 0.0F);
 			this.yaw = wdl.player.rotationYaw;
-			this.oldCameraMode = wdl.minecraft.gameSettings.thirdPersonView;
+			this.oldCameraMode = VersionedFunctions.getPointOfView(wdl.minecraft.gameSettings);
 			this.oldHideHud = wdl.minecraft.gameSettings.hideGUI;
 			this.oldShowDebug = wdl.minecraft.gameSettings.showDebugInfo;
 			this.oldChatVisibility = wdl.minecraft.gameSettings.chatVisibility;
@@ -169,8 +169,8 @@ public abstract class GuiTurningCameraBase extends WDLScreen {
 	 * @return A new distance, equal to or less than <code>currentDistance</code>.
 	 */
 	private double truncateDistanceIfBlockInWay(double camX, double camZ, double currentDistance) {
-		Vec3d playerPos = wdl.player.getPositionVector().add(0, wdl.player.getEyeHeight(), 0);
-		Vec3d offsetPos = playerPos.add(-currentDistance * camX, 0, currentDistance * camZ);
+		Vector3d playerPos = wdl.player.getPositionVec().add(0, wdl.player.getEyeHeight(), 0);
+		Vector3d offsetPos = playerPos.add(-currentDistance * camX, 0, currentDistance * camZ);
 
 		// NOTE: Vec3.addVector and Vec3.add return new vectors and leave the
 		// current vector unmodified.
@@ -186,8 +186,8 @@ public abstract class GuiTurningCameraBase extends WDLScreen {
 				offsetZ = 0;
 			}
 
-			Vec3d from = playerPos.add(offsetX, offsetY, offsetZ);
-			Vec3d to = offsetPos.add(offsetX, offsetY, offsetZ);
+			Vector3d from = playerPos.add(offsetX, offsetY, offsetZ);
+			Vector3d to = offsetPos.add(offsetX, offsetY, offsetZ);
 
 			RayTraceResult pos = minecraft.world.rayTraceBlocks(new RayTraceContext(from, to, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, wdl.player));
 
@@ -245,7 +245,7 @@ public abstract class GuiTurningCameraBase extends WDLScreen {
 	private void activateRenderViewEntity() {
 		if (!this.initializedCamera) return;
 
-		wdl.minecraft.gameSettings.thirdPersonView = 0;
+		VersionedFunctions.setFirstPersonPointOfView(wdl.minecraft.gameSettings);
 		wdl.minecraft.gameSettings.hideGUI = true;
 		wdl.minecraft.gameSettings.showDebugInfo = false;
 		wdl.minecraft.gameSettings.chatVisibility = ChatVisibility.HIDDEN;
@@ -258,7 +258,7 @@ public abstract class GuiTurningCameraBase extends WDLScreen {
 	private void deactivateRenderViewEntity() {
 		if (!this.initializedCamera) return;
 
-		wdl.minecraft.gameSettings.thirdPersonView = this.oldCameraMode;
+		VersionedFunctions.restorePointOfView(wdl.minecraft.gameSettings, this.oldCameraMode);
 		wdl.minecraft.gameSettings.hideGUI = oldHideHud;
 		wdl.minecraft.gameSettings.showDebugInfo = oldShowDebug;
 		wdl.minecraft.gameSettings.chatVisibility = oldChatVisibility;

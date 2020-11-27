@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -16,7 +16,7 @@ package wdl.gui;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import wdl.WDL;
 import wdl.config.IConfiguration;
@@ -71,12 +71,15 @@ public class GuiWDLPlayer extends WDLScreen {
 		});
 		y += 22;
 		this.posTextY = y + 4;
-		this.posX = this.addTextField(new GuiNumericTextField(40, this.font,
-				this.width / 2 - 87, y, 50, 16));
-		this.posY = this.addTextField(new GuiNumericTextField(41, this.font,
-				this.width / 2 - 19, y, 50, 16));
-		this.posZ = this.addTextField(new GuiNumericTextField(42, this.font,
-				this.width / 2 + 48, y, 50, 16));
+		this.posX = this.addTextField(new GuiNumericTextField(this.font,
+				this.width / 2 - 87, y, 50, 16,
+				new TranslationTextComponent("wdl.gui.player.position.coord", "X")));
+		this.posY = this.addTextField(new GuiNumericTextField(this.font,
+				this.width / 2 - 19, y, 50, 16,
+				new TranslationTextComponent("wdl.gui.player.position.coord", "Y")));
+		this.posZ = this.addTextField(new GuiNumericTextField(this.font,
+				this.width / 2 + 48, y, 50, 16,
+				new TranslationTextComponent("wdl.gui.player.position.coord", "Z")));
 		this.posX.setValue(config.getValue(PlayerSettings.PLAYER_X));
 		this.posY.setValue(config.getValue(PlayerSettings.PLAYER_Y));
 		this.posZ.setValue(config.getValue(PlayerSettings.PLAYER_Z));
@@ -86,7 +89,7 @@ public class GuiWDLPlayer extends WDLScreen {
 		y += 18;
 		this.pickPosBtn = this.addButton(new WDLButton(
 				this.width / 2 - 0, y, 100, 20,
-				I18n.format("wdl.gui.player.setPositionToCurrentPosition")) {
+				new TranslationTextComponent("wdl.gui.player.setPositionToCurrentPosition")) {
 			public @Override void performAction() {
 				setPlayerPosToPlayerPosition();
 			}
@@ -114,9 +117,9 @@ public class GuiWDLPlayer extends WDLScreen {
 	 */
 	@Override
 	public void render(int mouseX, int mouseY, float partialTicks) {
-		Utils.drawListBackground(23, 32, 0, 0, height, width);
+		this.drawListBackground(23, 32, 0, 0, height, width);
 
-		String tooltip = null;
+		ITextComponent tooltip = null;
 
 		if (this.showPosFields) {
 			this.drawString(this.font, "X:", this.width / 2 - 99,
@@ -126,16 +129,16 @@ public class GuiWDLPlayer extends WDLScreen {
 			this.drawString(this.font, "Z:", this.width / 2 + 37,
 					this.posTextY, 0xFFFFFF);
 
-			if (Utils.isHoveredTextBox(mouseX, mouseY, posX)) {
-				tooltip = I18n.format("wdl.gui.player.positionTextBox.description", "X");
-			} else if (Utils.isHoveredTextBox(mouseX, mouseY, posY)) {
-				tooltip = I18n.format("wdl.gui.player.positionTextBox.description", "Y");
-			} else if (Utils.isHoveredTextBox(mouseX, mouseY, posZ)) {
-				tooltip = I18n.format("wdl.gui.player.positionTextBox.description", "Z");
+			if (posX.isHovered()) {
+				tooltip = new TranslationTextComponent("wdl.gui.player.positionTextBox.description", "X");
+			} else if (posY.isHovered()) {
+				tooltip = new TranslationTextComponent("wdl.gui.player.positionTextBox.description", "Y");
+			} else if (posZ.isHovered()) {
+				tooltip = new TranslationTextComponent("wdl.gui.player.positionTextBox.description", "Z");
 			}
 
 			if (pickPosBtn.isHovered()) {
-				tooltip = I18n.format("wdl.gui.player.setPositionToCurrentPosition.description");
+				tooltip = new TranslationTextComponent("wdl.gui.player.setPositionToCurrentPosition.description");
 			}
 		}
 
@@ -152,12 +155,12 @@ public class GuiWDLPlayer extends WDLScreen {
 		super.render(mouseX, mouseY, partialTicks);
 
 		if (tooltip != null) {
-			Utils.drawGuiInfoBox(tooltip, width, height, 48);
+			this.drawGuiInfoBox(tooltip, width, height, 48);
 		}
 	}
 
 	private void upadatePlayerPosVisibility() {
-		boolean show = config.getValue(PlayerSettings.PLAYER_POSITION) == PlayerSettings.PlayerPos.XYZ;;
+		boolean show = config.getValue(PlayerSettings.PLAYER_POSITION) == PlayerSettings.PlayerPos.XYZ;
 
 		showPosFields = show;
 		posX.setVisible(show);

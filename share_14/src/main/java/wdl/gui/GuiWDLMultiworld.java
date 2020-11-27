@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2018 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -16,6 +16,8 @@ package wdl.gui;
 import java.util.List;
 
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import wdl.gui.widget.WDLButton;
 import wdl.gui.widget.WDLScreen;
 
@@ -53,7 +55,7 @@ public class GuiWDLMultiworld extends WDLScreen {
 				+ I18n.format("wdl.gui.multiworld.descirption.whatIs");
 
 		infoBoxWidth = 320;
-		infoBoxLines = Utils.wordWrap(multiworldMessage, infoBoxWidth - 20);
+		infoBoxLines = wordWrap(multiworldMessage, infoBoxWidth - 20);
 		infoBoxHeight = (font.FONT_HEIGHT * (infoBoxLines.size() + 1)) + 40;
 
 		infoBoxX = this.width / 2 - infoBoxWidth / 2;
@@ -68,14 +70,14 @@ public class GuiWDLMultiworld extends WDLScreen {
 		});
 
 		this.addButton(new WDLButton(this.width / 2 - 155,
-				this.height - 29, 150, 20, I18n.format("gui.cancel")) {
+				this.height - 29, 150, 20, new TranslationTextComponent("gui.cancel")) {
 			public @Override void performAction() {
 				callback.onCancel();
 			}
 		});
 
 		this.addButton(new WDLButton(this.width / 2 + 5,
-				this.height - 29, 150, 20, I18n.format("gui.done")) {
+				this.height - 29, 150, 20, new TranslationTextComponent("gui.done")) {
 			public @Override void performAction() {
 				callback.onSelect(enableMultiworld);
 			}
@@ -88,7 +90,7 @@ public class GuiWDLMultiworld extends WDLScreen {
 	@Override
 	public void render(int mouseX, int mouseY, float partialTicks) {
 		this.renderBackground();
-		Utils.drawBorder(32, 32, 0, 0, height, width);
+		this.drawBorder(32, 32, 0, 0, height, width);
 
 		fill(infoBoxX, infoBoxY, infoBoxX + infoBoxWidth, infoBoxY
 				+ infoBoxHeight, 0xB0000000);
@@ -128,8 +130,8 @@ public class GuiWDLMultiworld extends WDLScreen {
 	/**
 	 * Gets the text to display on the multiworld enabled button.
 	 */
-	private String getMultiworldEnabledText() {
-		return I18n.format("wdl.gui.multiworld." + enableMultiworld);
+	private ITextComponent getMultiworldEnabledText() {
+		return new TranslationTextComponent("wdl.gui.multiworld." + enableMultiworld);
 	}
 
 	@Override

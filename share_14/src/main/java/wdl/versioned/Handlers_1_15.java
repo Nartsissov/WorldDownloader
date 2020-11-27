@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -13,6 +13,10 @@
  */
 package wdl.versioned;
 
+
+import java.io.File;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import javax.annotation.Nullable;
 
@@ -36,6 +40,8 @@ import net.minecraft.block.HopperBlock;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.block.TrappedChestBlock;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.CommandBlockTileEntity;
@@ -43,6 +49,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.storage.SaveHandler;
 import wdl.handler.block.BarrelHandler;
 import wdl.handler.block.BeaconHandler;
@@ -67,6 +74,25 @@ import wdl.handler.entity.VillagerHandler;
 
 final class HandlerFunctions {
 	private HandlerFunctions() { throw new AssertionError(); }
+
+	static final IDimensionWrapper NETHER = new DimensionWrapper(DimensionType.THE_NETHER);
+	static final IDimensionWrapper OVERWORLD = new DimensionWrapper(DimensionType.OVERWORLD);
+	static final IDimensionWrapper END = new DimensionWrapper(DimensionType.THE_END);
+
+	private static Map<DimensionType, IDimensionWrapper> dimensions = new WeakHashMap<>();
+	static {
+		dimensions.put(DimensionType.THE_NETHER, NETHER);
+		dimensions.put(DimensionType.OVERWORLD, OVERWORLD);
+		dimensions.put(DimensionType.THE_END, END);
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#getDimension
+	 */
+	static IDimensionWrapper getDimension(World world) {
+		// Handle other dimensions for some level of forge compatibility.
+		return dimensions.computeIfAbsent(world.dimension.getType(), DimensionWrapper::new);
+	}
 
 	/* (non-javadoc)
 	 * @see VersionedFunctions#hasSkyLight
@@ -164,10 +190,102 @@ final class HandlerFunctions {
 	/* (non-javadoc)
 	 * @see VersionedFunctions#getSaveHandler
 	 */
-	static SaveHandler getSaveHandler(Minecraft minecraft, String worldName) {
+	static ISaveHandlerWrapper getSaveHandler(Minecraft minecraft, String worldName) throws Exception {
 		// Null => No server to use when saving player data.  This is fine for WDL
 		// we handle player data manually.
-		return (SaveHandler)minecraft.getSaveLoader().getSaveLoader(worldName, null);
+		return new SaveHandlerWrapper(minecraft.getSaveLoader().getSaveLoader(worldName, null));
+	}
+
+	static class SaveHandlerWrapper implements ISaveHandlerWrapper {
+		private final SaveHandler handler;
+		public SaveHandlerWrapper(SaveHandler handler) {
+			this.handler = handler;
+		}
+
+		@Override
+		public void close() throws Exception {
+			// Nothing needs to be done
+		}
+
+		@Override
+		public File getWorldDirectory() {
+			return handler.getWorldDirectory();
+		}
+
+		@Override
+		public void checkSessionLock() throws Exception {
+			handler.checkSessionLock();
+		}
+
+		@Override
+		public Object getWrapped() {
+			return handler;
+		}
+
+		@Override
+		public String toString() {
+			return "SaveHandlerWrapper [handler=" + handler + "]";
+		}
+	}
+
+	static class DimensionWrapper implements IDimensionWrapper {
+		private final DimensionType type;
+		public DimensionWrapper(DimensionType type) {
+			this.type = type;
+		}
+
+		@Override
+		public String getFolderName() {
+			if (type == DimensionType.THE_END) {
+				return "DIM1";
+			} else if (type == DimensionType.THE_NETHER) {
+				return "DIM-1";
+			}
+			return null;
+		}
+
+		@Override
+		public DimensionType getType() {
+			return type;
+		}
+
+		@Override
+		public Object getTypeKey() {
+			return null;
+		}
+
+		@Override
+		public Object getWorldKey() {
+			return null;
+		}
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#writeAdditionalPlayerData
+	 */
+	static void writeAdditionalPlayerData(ClientPlayerEntity player, CompoundNBT nbt) {
+		// TODO: handle everything in ServerPlayerEntity (but nothing is completely required)
+	}
+
+	/**
+	 * Hardcoded, unchanging anvil save version ID.
+	 *
+	 * 19132: McRegion; 19133: Anvil.  If it's necessary to specify a new
+	 * version, many other parts of the mod will be broken anyways.
+	 */
+	private static final int ANVIL_SAVE_VERSION = 19133;
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#getWorldInfoNbt
+	 */
+	static CompoundNBT getWorldInfoNbt(ClientWorld world, CompoundNBT playerNBT) {
+		// Set the save version, which isn't done automatically for some
+		// strange reason.
+		world.getWorldInfo().setSaveVersion(ANVIL_SAVE_VERSION);
+
+		// cloneNBTCompound takes the PLAYER's nbt file, and puts it in the right place.
+		// This is needed because single player uses that data.
+		return world.getWorldInfo().cloneNBTCompound(playerNBT);
 	}
 
 	/* (non-javadoc)

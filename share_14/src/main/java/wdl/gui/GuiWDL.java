@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -19,8 +19,8 @@ import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import wdl.WDL;
 import wdl.WDLPluginChannels;
@@ -30,24 +30,25 @@ import wdl.gui.widget.ButtonDisplayGui;
 import wdl.gui.widget.GuiList;
 import wdl.gui.widget.WDLButton;
 import wdl.gui.widget.WDLScreen;
+import wdl.gui.widget.WDLTextField;
 import wdl.update.WDLUpdateChecker;
 
 public class GuiWDL extends WDLScreen {
 	/**
 	 * Tooltip to display on the given frame.
 	 */
-	private String displayedTooltip = null;
+	private ITextComponent displayedTooltip = null;
 
 	private class GuiWDLButtonList extends GuiList<GuiWDLButtonList.ButtonEntry> {
 		public GuiWDLButtonList() {
-			super(GuiWDL.this.minecraft, GuiWDL.this.width, GuiWDL.this.height, 39,
+			super(GuiWDL.this, GuiWDL.this.width, GuiWDL.this.height, 39,
 					GuiWDL.this.height - 32, 20);
 		}
 
 		private class ButtonEntry extends GuiList.GuiListEntry<ButtonEntry> {
 			private final WDLButton button;
 
-			private final String tooltip;
+			private final ITextComponent tooltip;
 
 			/**
 			 * Constructor.
@@ -65,13 +66,13 @@ public class GuiWDL extends WDLScreen {
 			 */
 			public ButtonEntry(String key, BiFunction<Screen, WDL, Screen> openFunc, boolean needsPerms) {
 				this.button = this.addButton(new ButtonDisplayGui(0, 0, 200, 20,
-						I18n.format("wdl.gui.wdl." + key + ".name"),
+						new TranslationTextComponent("wdl.gui.wdl." + key + ".name"),
 						() -> openFunc.apply(GuiWDL.this, GuiWDL.this.wdl)), -100, 0);
 				if (needsPerms) {
 					button.setEnabled(WDLPluginChannels.canDownloadAtAll());
 				}
 
-				this.tooltip = I18n.format("wdl.gui.wdl." + key + ".description");
+				this.tooltip = new TranslationTextComponent("wdl.gui.wdl." + key + ".description");
 			}
 
 			@Override
@@ -110,7 +111,7 @@ public class GuiWDL extends WDLScreen {
 	private final WDL wdl;
 	private final IConfiguration config;
 
-	private TextFieldWidget worldname;
+	private WDLTextField worldname;
 
 	public GuiWDL(@Nullable Screen parent, WDL wdl) {
 		super(new TranslationTextComponent("wdl.gui.wdl.title", WDL.baseFolderName));
@@ -124,8 +125,8 @@ public class GuiWDL extends WDLScreen {
 	 */
 	@Override
 	public void init() {
-		this.worldname = this.addTextField(new TextFieldWidget(this.font,
-				this.width / 2 - 155, 19, 150, 18, I18n.format("wdl.gui.wdl.worldname")));
+		this.worldname = this.addTextField(new WDLTextField(this.font,
+				this.width / 2 - 155, 19, 150, 18, new TranslationTextComponent("wdl.gui.wdl.worldname")));
 		this.worldname.setText(this.config.getValue(MiscSettings.SERVER_NAME));
 
 		this.addButton(new ButtonDisplayGui(this.width / 2 - 100, this.height - 29,
@@ -163,6 +164,6 @@ public class GuiWDL extends WDLScreen {
 		this.drawString(this.font, name, this.worldname.x
 				- this.font.getStringWidth(name + " "), 26, 0xFFFFFF);
 
-		Utils.drawGuiInfoBox(displayedTooltip, width, height, 48);
+		this.drawGuiInfoBox(displayedTooltip, width, height, 48);
 	}
 }

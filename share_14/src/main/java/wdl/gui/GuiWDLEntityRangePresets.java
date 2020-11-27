@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2018 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -20,7 +20,6 @@ import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import wdl.EntityUtils;
@@ -61,17 +60,17 @@ public class GuiWDLEntityRangePresets extends WDLScreen {
 
 		this.vanillaButton = this.addButton(new ButtonDisplayGui(
 				this.width / 2 - 100, y, 200, 20,
-				I18n.format("wdl.gui.rangePresets.vanilla"),
+				new TranslationTextComponent("wdl.gui.rangePresets.vanilla"),
 				makeYesNoGui("wdl.gui.rangePresets.vanilla.warning", ID_VANILLA)));
 		y += 22;
 		this.spigotButton = this.addButton(new ButtonDisplayGui(
 				this.width / 2 - 100, y, 200, 20,
-				I18n.format("wdl.gui.rangePresets.spigot"),
+				new TranslationTextComponent("wdl.gui.rangePresets.spigot"),
 				makeYesNoGui("wdl.gui.rangePresets.spigot.warning", ID_SPIGOT)));
 		y += 22;
 		this.serverButton = this.addButton(new ButtonDisplayGui(
 				this.width / 2 - 100, y, 200, 20,
-				I18n.format("wdl.gui.rangePresets.server"),
+				new TranslationTextComponent("wdl.gui.rangePresets.server"),
 				makeYesNoGui("wdl.gui.rangePresets.spigot.warning", ID_SERVER)));
 
 		serverButton.setEnabled(WDLPluginChannels.hasServerEntityRange());
@@ -80,7 +79,7 @@ public class GuiWDLEntityRangePresets extends WDLScreen {
 
 		this.cancelButton = this.addButton(new ButtonDisplayGui(
 				this.width / 2 - 100, this.height - 29, 200, 20,
-				I18n.format("gui.cancel"), this.parent));
+				new TranslationTextComponent("gui.cancel"), this.parent));
 	}
 
 	private Supplier<ConfirmScreen> makeYesNoGui(String message, int id) {
@@ -92,28 +91,31 @@ public class GuiWDLEntityRangePresets extends WDLScreen {
 
 	@Override
 	public void render(int mouseX, int mouseY, float partialTicks) {
-		Utils.drawListBackground(23, 32, 0, 0, height, width);
+		this.drawListBackground(23, 32, 0, 0, height, width);
 
-		String infoText = null;
+		ITextComponent infoText = null;
 
 		if (vanillaButton.isHovered()) {
-			infoText = I18n.format("wdl.gui.rangePresets.vanilla.description");
+			infoText = new TranslationTextComponent("wdl.gui.rangePresets.vanilla.description");
 		} else if (spigotButton.isHovered()) {
-			infoText = I18n.format("wdl.gui.rangePresets.spigot.description");
+			infoText = new TranslationTextComponent("wdl.gui.rangePresets.spigot.description");
 		} else if (serverButton.isHovered()) {
-			infoText = I18n.format("wdl.gui.rangePresets.server.description") + "\n\n";
+			// Laid out awkwardly due to 1.16's IFormattableTextComponent
+			TranslationTextComponent desc = new TranslationTextComponent("wdl.gui.rangePresets.server.description");
 
 			if (serverButton.isEnabled()) {
-				infoText += I18n.format("wdl.gui.rangePresets.server.installed");
+				infoText = desc.appendText("\n\n").appendSibling(
+						new TranslationTextComponent("wdl.gui.rangePresets.server.installed"));
 			} else {
-				infoText += I18n.format("wdl.gui.rangePresets.server.notInstalled");
+				infoText = desc.appendText("\n\n").appendSibling(
+						new TranslationTextComponent("wdl.gui.rangePresets.server.notInstalled"));
 			}
 		} else if (cancelButton.isHovered()) {
-			infoText = I18n.format("wdl.gui.rangePresets.cancel.description");
+			infoText = new TranslationTextComponent("wdl.gui.rangePresets.cancel.description");
 		}
 
 		if (infoText != null) {
-			Utils.drawGuiInfoBox(infoText, width, height, 48);
+			this.drawGuiInfoBox(infoText, width, height, 48);
 		}
 
 		super.render(mouseX, mouseY, partialTicks);

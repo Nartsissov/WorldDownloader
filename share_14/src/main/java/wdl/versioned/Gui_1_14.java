@@ -17,15 +17,23 @@ import static org.lwjgl.opengl.GL11.*;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
+import net.minecraft.client.GameSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.network.play.ClientPlayNetHandler;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Util;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.event.ClickEvent;
+import net.minecraft.util.text.event.ClickEvent.Action;
 import net.minecraft.world.World;
 
 /**
@@ -40,6 +48,27 @@ final class GuiFunctions {
 	static ClientPlayerEntity makePlayer(Minecraft minecraft, World world, ClientPlayNetHandler nhpc, ClientPlayerEntity base) {
 		return new ClientPlayerEntity(minecraft, (ClientWorld)world, nhpc,
 				base.getStats(), base.getRecipeBook());
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#getPointOfView
+	 */
+	static Object getPointOfView(GameSettings settings) {
+		return settings.thirdPersonView;
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#setFirstPersonPointOfView
+	 */
+	static void setFirstPersonPointOfView(GameSettings settings) {
+		settings.thirdPersonView = 0;
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#restorePointOfView
+	 */
+	static void restorePointOfView(GameSettings settings, Object value) {
+		settings.thirdPersonView = (int)value;
 	}
 
 	/* (non-javadoc)
@@ -168,14 +197,33 @@ final class GuiFunctions {
 	/* (non-javadoc)
 	 * @see VersionedFunctions#glColor4f
 	 */
-	public static void glColor4f(float r, float g, float b, float a) {
+	static void glColor4f(float r, float g, float b, float a) {
 		GlStateManager.color4f(r, g, b, a);
 	}
 
 	/* (non-javadoc)
 	 * @see VersionedFunctions#glTranslatef
 	 */
-	public static void glTranslatef(float x, float y, float z) {
+	static void glTranslatef(float x, float y, float z) {
 		GlStateManager.translatef(x, y, z);
+	}
+
+	/* (non-javadoc)
+	 * @see VersionedFunctions#applyLinkFormatting
+	 */
+	static Style createLinkFormatting(String url) {
+		return new Style()
+				.setColor(TextFormatting.BLUE)
+				.setUnderlined(true)
+				.setClickEvent(new ClickEvent(Action.OPEN_URL, url));
+	}
+
+	/* (non-javadoc)
+	 * @See VersionedFunctions#createConfirmScreen
+	 */
+	static ConfirmScreen createConfirmScreen(BooleanConsumer action, ITextComponent line1,
+			ITextComponent line2, ITextComponent confirm, ITextComponent cancel) {
+		return new ConfirmScreen(action, line1, line2,
+				confirm.getFormattedText(), cancel.getFormattedText());
 	}
 }

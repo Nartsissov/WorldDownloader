@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2018 Pokechu22, julialy
+ * Copyright (c) 2018-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -13,13 +13,15 @@
  */
 package wdl;
 
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.hamcrest.Matchers.*;
 
 import java.util.Arrays;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -36,7 +38,7 @@ import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUseContext;
 import net.minecraft.item.crafting.RecipeManager;
-import net.minecraft.profiler.IProfiler;
+import net.minecraft.profiler.EmptyProfiler;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
@@ -47,44 +49,36 @@ import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.Difficulty;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldSettings;
+import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biomes;
 import net.minecraft.world.chunk.AbstractChunkProvider;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.server.ServerChunkProvider;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.gen.ChunkGenerator;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.storage.SaveHandler;
 import net.minecraft.world.storage.WorldInfo;
+import wdl.versioned.IDimensionWrapper;
 
 abstract class ExtWorldClient extends ClientWorld {
 	private static final int VIEW_DISTANCE = 16;
 
-	public ExtWorldClient(ClientPlayNetHandler netHandler, WorldSettings settings, DimensionType dim,
-			Difficulty difficulty, IProfiler profilerIn) {
-		super(netHandler, settings, dim, VIEW_DISTANCE, profilerIn, mock(WorldRenderer.class));
-		getChunkProvider(); // Make sure it's injected
-	}
-
-	private boolean injectedChunkProvider = false;
-
 	@SuppressWarnings("resource")
-	@Override
-	public ClientChunkProvider getChunkProvider() {
-		if (!injectedChunkProvider) {
-			// Also, note that this is changing a final field, but doesn't seem to be causing any issues...
-			ReflectionUtils.findAndSetPrivateField(this, World.class, AbstractChunkProvider.class, new SimpleChunkProvider());
-			assertThat(this.chunkProvider, is(instanceOf(SimpleChunkProvider.class)));
-			injectedChunkProvider = true;
-		}
-		return super.getChunkProvider();
+	public ExtWorldClient(IDimensionWrapper dim) {
+		super(mock(ClientPlayNetHandler.class),
+				new WorldSettings(0L, null, false, false, WorldType.DEFAULT),
+				(DimensionType) dim.getType(), VIEW_DISTANCE, EmptyProfiler.INSTANCE,
+				mock(WorldRenderer.class));
+
+		// Note that this is changing a final field, but doesn't seem to be causing any issues...
+		ReflectionUtils.findAndSetPrivateField(this, World.class, AbstractChunkProvider.class, new SimpleChunkProvider());
+		assertThat(this.chunkProvider, is(instanceOf(SimpleChunkProvider.class)));
 	}
 
 	private final RecipeManager recipeManager = mock(RecipeManager.class);
@@ -106,7 +100,7 @@ abstract class ExtWorldClient extends ClientWorld {
 		player.setHeldItem(Hand.MAIN_HAND, new ItemStack(block));
 		BlockItemUseContext context = new BlockItemUseContext(
 				new ItemUseContext(player, Hand.MAIN_HAND,
-						new BlockRayTraceResult(new Vec3d(pos), direction, pos, false)));
+						new BlockRayTraceResult(new Vector3d(pos), direction, pos, false)));
 		BlockState state = block.getStateForPlacement(context);
 		setBlockState(pos, state);
 	}
@@ -164,10 +158,15 @@ abstract class ExtWorldClient extends ClientWorld {
 }
 
 abstract class ExtWorldServer extends ServerWorld {
-	public ExtWorldServer(MinecraftServer server, SaveHandler saveHandlerIn, WorldInfo info, DimensionType dim,
-			IProfiler profilerIn) {
-		super(server, task -> task.run(), saveHandlerIn, info, dim, profilerIn, null);
-		getChunkProvider(); // Make sure it's injected
+	@SuppressWarnings("resource")
+	public ExtWorldServer(IDimensionWrapper dim) {
+		super(mock(MinecraftServer.class, withSettings().defaultAnswer(RETURNS_MOCKS)),
+				task -> task.run(), mock(SaveHandler.class), new WorldInfo() {},
+				(DimensionType) dim.getType(), EmptyProfiler.INSTANCE, null);
+
+		// Note that this is changing a final field, but doesn't seem to be causing any issues...
+		ReflectionUtils.findAndSetPrivateField(this, World.class, AbstractChunkProvider.class, new SimpleChunkProvider());
+		assertThat(this.chunkProvider, is(instanceOf(SimpleChunkProvider.class)));
 	}
 
 	/**
@@ -177,20 +176,6 @@ abstract class ExtWorldServer extends ServerWorld {
 
 	private final RecipeManager recipeManager = mock(RecipeManager.class);
 	private final ServerScoreboard scoreboard = mock(ServerScoreboard.class, withSettings().useConstructor(new Object[] {null}));
-	private boolean injectedChunkProvider = false;
-
-	@SuppressWarnings("resource")
-	@Override
-	public ServerChunkProvider getChunkProvider() {
-		if (!injectedChunkProvider) {
-			// NOTE: we have to do this here instead of the constructor, since it's called in the parent's constructor
-			// Also, note that this is changing a final field, but doesn't seem to be causing any issues...
-			ReflectionUtils.findAndSetPrivateField(this, World.class, AbstractChunkProvider.class, new SimpleChunkProvider());
-			assertThat(this.chunkProvider, is(instanceOf(SimpleChunkProvider.class)));
-			injectedChunkProvider = true;
-		}
-		return super.getChunkProvider();
-	}
 
 	@Override
 	public RecipeManager getRecipeManager() {
@@ -207,7 +192,7 @@ abstract class ExtWorldServer extends ServerWorld {
 		player.rotationYaw = direction.getHorizontalAngle();
 		BlockItemUseContext context = new BlockItemUseContext(
 				new ItemUseContext(player, Hand.MAIN_HAND,
-						new BlockRayTraceResult(new Vec3d(pos), direction, pos, false)));
+						new BlockRayTraceResult(new Vector3d(pos), direction, pos, false)));
 		BlockState state = block.getStateForPlacement(context);
 		setBlockState(pos, state);
 	}
@@ -221,7 +206,7 @@ abstract class ExtWorldServer extends ServerWorld {
 	/** Right-clicks a block. */
 	public void interactBlock(BlockPos pos, PlayerEntity player) {
 		BlockState state = this.getBlockState(pos);
-		BlockRayTraceResult rayTraceResult = new BlockRayTraceResult(new Vec3d(pos), Direction.DOWN, pos, false);
+		BlockRayTraceResult rayTraceResult = new BlockRayTraceResult(new Vector3d(pos), Direction.DOWN, pos, false);
 		state.func_215687_a(this, player, Hand.MAIN_HAND, rayTraceResult);
 	}
 
@@ -251,6 +236,13 @@ abstract class ExtWorldServer extends ServerWorld {
 	public void playSound(double p_184134_1_, double p_184134_3_, double p_184134_5_, SoundEvent p_184134_7_,
 			SoundCategory p_184134_8_, float p_184134_9_, float p_184134_10_, boolean p_184134_11_) {
 		// Do nothing
+	}
+
+	@Nullable
+	@Override
+	public BlockPos findNearestStructure(String name, BlockPos pos, int radius, boolean skipExistingChunks) {
+		// We don't have structures
+		return null;
 	}
 
 	private static final Biome[] NO_BIOMES = new Biome[16*16];

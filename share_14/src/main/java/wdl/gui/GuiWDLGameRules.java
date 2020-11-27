@@ -3,7 +3,7 @@
  * https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2520465-world-downloader-mod-create-backups-of-your-builds
  *
  * Copyright (c) 2014 nairol, cubic72
- * Copyright (c) 2017-2019 Pokechu22, julialy
+ * Copyright (c) 2017-2020 Pokechu22, julialy
  *
  * This project is licensed under the MMPLv2.  The full text of the MMPL can be
  * found in LICENSE.md, or online at https://github.com/iopleke/MMPLv2/blob/master/LICENSE.md
@@ -21,6 +21,9 @@ import javax.annotation.Nullable;
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.GameRules;
 import wdl.WDL;
 import wdl.gui.widget.ButtonDisplayGui;
@@ -37,7 +40,7 @@ public class GuiWDLGameRules extends WDLScreen {
 	 * Text to draw (set from inner classes)
 	 */
 	@Nullable
-	private String hoveredToolTip;
+	private ITextComponent hoveredToolTip;
 
 	/**
 	 * Colors for the text field on numeric entries when there is/is not a
@@ -51,7 +54,7 @@ public class GuiWDLGameRules extends WDLScreen {
 		private RuleEntry lastClickedEntry = null;
 
 		public GuiGameRuleList() {
-			super(GuiWDLGameRules.this.minecraft, GuiWDLGameRules.this.width,
+			super(GuiWDLGameRules.this, GuiWDLGameRules.this.width,
 					GuiWDLGameRules.this.height, 39,
 					GuiWDLGameRules.this.height - 32, 24);
 			List<RuleEntry> entries = this.getEntries();
@@ -77,7 +80,7 @@ public class GuiWDLGameRules extends WDLScreen {
 			public RuleEntry(@Nonnull String ruleName) {
 				this.ruleName = ruleName;
 				resetButton = this.addButton(new WDLButton(0, 0, 50, 20,
-						I18n.format("wdl.gui.gamerules.resetRule")) {
+						new TranslationTextComponent("wdl.gui.gamerules.resetRule")) {
 					public @Override void performAction() {
 						performResetAction();
 					}
@@ -92,10 +95,10 @@ public class GuiWDLGameRules extends WDLScreen {
 
 				drawString(font, this.ruleName, x, y + 6, 0xFFFFFFFF);
 
-				if (this.isHoveredControl(mouseX, mouseY)) {
+				if (this.isControlHovered()) {
 					String key = "wdl.gui.gamerules.rules." + ruleName;
 					if (I18n.hasKey(key)) { // may return false for mods
-						hoveredToolTip = I18n.format(key);
+						hoveredToolTip = new TranslationTextComponent(key);
 					}
 				}
 			}
@@ -106,7 +109,7 @@ public class GuiWDLGameRules extends WDLScreen {
 				return super.mouseDown(mouseX, mouseY, mouseButton);
 			}
 
-			protected abstract boolean isHoveredControl(int mouseX, int mouseY);
+			protected abstract boolean isControlHovered();
 
 			@Override
 			public boolean isSelected() {
@@ -125,7 +128,9 @@ public class GuiWDLGameRules extends WDLScreen {
 			public IntRuleEntry(String ruleName) {
 				super(ruleName);
 				field = this.addTextField(new GuiNumericTextField(
-						0, font, 0, 0, 100, 20), 0, 0);
+						font, 0, 0, 100, 20,
+						new TranslationTextComponent("wdl.gui.gamerules.ruleValue", ruleName)),
+						0, 0);
 				field.setText(getRule(ruleName));
 			}
 
@@ -150,8 +155,8 @@ public class GuiWDLGameRules extends WDLScreen {
 			}
 
 			@Override
-			protected boolean isHoveredControl(int mouseX, int mouseY) {
-				return Utils.isHoveredTextBox(mouseX, mouseY, field);
+			protected boolean isControlHovered() {
+				return field.isHovered();
 			}
 
 			@Override
@@ -166,7 +171,8 @@ public class GuiWDLGameRules extends WDLScreen {
 
 			public BooleanRuleEntry(String ruleName) {
 				super(ruleName);
-				button = this.addButton(new WDLButton(0, 0, 100, 20, "") {
+				button = this.addButton(new WDLButton(0, 0, 100, 20,
+						new StringTextComponent(getRule(ruleName))) {
 					public @Override void performAction() {
 						boolean oldValue = getRule(ruleName).equals("true");
 						setRule(ruleName, oldValue ? "false" : "true");
@@ -176,12 +182,12 @@ public class GuiWDLGameRules extends WDLScreen {
 
 			@Override
 			public void drawEntry(int x, int y, int width, int height, int mouseX, int mouseY) {
-				this.button.setMessage(getRule(ruleName));
+				this.button.setMessage(new StringTextComponent(getRule(ruleName)));
 				super.drawEntry(x, y, width, height, mouseX, mouseY);
 			}
 
 			@Override
-			protected boolean isHoveredControl(int mouseX, int mouseY) {
+			protected boolean isControlHovered() {
 				return button.isHovered();
 			}
 		}
@@ -276,10 +282,10 @@ public class GuiWDLGameRules extends WDLScreen {
 		super.render(mouseX, mouseY, partialTicks);
 
 		if (this.doneButton.isHovered()) {
-			Utils.drawGuiInfoBox(I18n.format("wdl.gui.gamerules.doneInfo"),
+			this.drawGuiInfoBox(new TranslationTextComponent("wdl.gui.gamerules.doneInfo"),
 					width, height, 48);
 		} else if (hoveredToolTip != null) {
-			Utils.drawGuiInfoBox(hoveredToolTip, width, height, 48);
+			this.drawGuiInfoBox(hoveredToolTip, width, height, 48);
 		}
 	}
 

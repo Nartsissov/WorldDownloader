@@ -53,6 +53,8 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.storage.MapData;
 import wdl.MapDataHandler.MapDataResult;
@@ -438,7 +440,7 @@ public class WDLEvents {
 						WDL.serverProps,
 						WDLMessageTypes.REMOVE_ENTITY,
 						"wdl.messages.removeEntity.savingDistance", entity,
-						entity.getPositionVector().toString(), wdl.player.getPositionVector(), threshold, serverViewDistance);
+						entity.getPositionVec().toString(), wdl.player.getPositionVec(), threshold, serverViewDistance);
 				ChunkPos pos = new ChunkPos(entity.chunkCoordX, entity.chunkCoordZ);
 				UUID uuid = entity.getUniqueID();
 				if (wdl.entityPositions.containsKey(uuid)) {
@@ -454,7 +456,7 @@ public class WDLEvents {
 						WDL.serverProps,
 						WDLMessageTypes.REMOVE_ENTITY,
 						"wdl.messages.removeEntity.allowingRemoveDistance", entity,
-						entity.getPositionVector().toString(), wdl.player.getPositionVector(), threshold, serverViewDistance);
+						entity.getPositionVec().toString(), wdl.player.getPositionVec(), threshold, serverViewDistance);
 			}
 		}
 	}
@@ -784,7 +786,8 @@ public class WDLEvents {
 		public void onNHPCDisconnect(ClientPlayNetHandler sender, ITextComponent reason) {
 			if (WDL.downloading) {
 				// This is likely to be called from an unexpected thread, so queue a task
-				wdl.minecraft.enqueue(wdl::stopDownload);
+				// if on a different thread (execute will run it immediately if on the right thread)
+				wdl.minecraft.execute(wdl::stopDownload);
 
 				// This code was present on older versions of WDL which weren't missing
 				// the onDisconnect handler before.
@@ -802,7 +805,7 @@ public class WDLEvents {
 
 		private class StartDownloadButton extends WDLButton {
 			public StartDownloadButton(Screen menu, int x, int y, int width, int height) {
-				super(x, y, width, height, null);
+				super(x, y, width, height, new StringTextComponent(""));
 				this.menu = menu;
 			}
 
@@ -811,37 +814,37 @@ public class WDLEvents {
 
 			@Override
 			public void beforeDraw() {
-				final String displayString;
+				final ITextComponent displayString;
 				final boolean enabled;
 				if (wdl.minecraft.isIntegratedServerRunning()) {
 					// Singleplayer
-					displayString = I18n
-							.format("wdl.gui.ingameMenu.downloadStatus.singlePlayer");
+					displayString = new TranslationTextComponent(
+							"wdl.gui.ingameMenu.downloadStatus.singlePlayer");
 					enabled = false;
 				} else if (!WDLPluginChannels.canDownloadAtAll()) {
 					if (WDLPluginChannels.canRequestPermissions()) {
 						// Allow requesting permissions.
-						displayString = I18n
-								.format("wdl.gui.ingameMenu.downloadStatus.request");
+						displayString = new TranslationTextComponent(
+								"wdl.gui.ingameMenu.downloadStatus.request");
 						enabled = true;
 					} else {
 						// Out of date plugin :/
-						displayString = I18n
-								.format("wdl.gui.ingameMenu.downloadStatus.disabled");
+						displayString = new TranslationTextComponent(
+								"wdl.gui.ingameMenu.downloadStatus.disabled");
 						enabled = false;
 					}
 				} else if (WDL.saving) {
 					// Normally not accessible; only happens as a major fallback...
-					displayString = I18n
-							.format("wdl.gui.ingameMenu.downloadStatus.saving");
+					displayString = new TranslationTextComponent(
+							"wdl.gui.ingameMenu.downloadStatus.saving");
 					enabled = false;
 				} else if (WDL.downloading) {
-					displayString = I18n
-							.format("wdl.gui.ingameMenu.downloadStatus.stop");
+					displayString = new TranslationTextComponent(
+							"wdl.gui.ingameMenu.downloadStatus.stop");
 					enabled = true;
 				} else {
-					displayString = I18n
-							.format("wdl.gui.ingameMenu.downloadStatus.start");
+					displayString = new TranslationTextComponent(
+							"wdl.gui.ingameMenu.downloadStatus.start");
 					enabled = true;
 				}
 				this.setEnabled(enabled);
@@ -880,7 +883,7 @@ public class WDLEvents {
 		}
 
 		private class SettingsButton extends WDLButton {
-			public SettingsButton(Screen menu, int x, int y, int width, int height, String displayString) {
+			public SettingsButton(Screen menu, int x, int y, int width, int height, ITextComponent displayString) {
 				super(x, y, width, height, displayString);
 				this.menu = menu;
 			}
@@ -901,18 +904,30 @@ public class WDLEvents {
 			}
 		}
 
+		private boolean isAdvancementsButton(Button button) {
+			Object message = button.getMessage(); // String or ITextComponent
+			if (message instanceof String) {
+				return message.equals(I18n.format("gui.advancements"));
+			} else if (message instanceof TranslationTextComponent) {
+				// Though the method returns an ITextComponent,
+				// for the screen it'll be a translation component.
+				return ((TranslationTextComponent) message).getKey().equals("gui.advancements");
+			} else {
+				return false;
+			}
+		}
+
 		@Override
 		public void injectWDLButtons(IngameMenuScreen gui, Collection<Widget> buttonList,
 				Consumer<Widget> addButton) {
 			int insertAtYPos = 0;
 
-			String advancementsText = I18n.format("gui.advancements");
 			for (Object o : buttonList) {
 				if (!(o instanceof Button)) {
 					continue;
 				}
 				Button btn = (Button)o;
-				if (btn.getMessage().equals(advancementsText)) { // Button "Achievements"
+				if (isAdvancementsButton(btn)) {
 					insertAtYPos = btn.y + 24;
 					break;
 				}
@@ -935,7 +950,7 @@ public class WDLEvents {
 
 			addButton.accept(new SettingsButton(gui,
 					gui.width / 2 + 74, insertAtYPos, 28, 20,
-					I18n.format("wdl.gui.ingameMenu.settings")));
+					new TranslationTextComponent("wdl.gui.ingameMenu.settings")));
 		}
 
 		@Override

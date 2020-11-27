@@ -17,14 +17,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
 import wdl.WDL;
 import wdl.config.Configuration;
 import wdl.config.IConfiguration;
 import wdl.config.settings.MiscSettings;
 import wdl.gui.widget.WDLButton;
+import wdl.gui.widget.WDLTextField;
 
 /**
  * A GUI for selecting which world the player is currently in.
@@ -176,11 +177,11 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 	/**
 	 * The "New name" field.
 	 */
-	private GuiTextField newNameField;
+	private WDLTextField newNameField;
 	/**
 	 * The "Search" field.  Allows filtering.
 	 */
-	private GuiTextField searchField;
+	private WDLTextField searchField;
 	/**
 	 * The "New world" button.
 	 */
@@ -308,11 +309,13 @@ public class GuiWDLMultiworldSelect extends GuiTurningCameraBase {
 			}
 		});
 
-		this.newNameField = this.addTextField(new GuiTextField(40, this.font,
-				this.width / 2 - 155, 29, 150, 20));
+		this.newNameField = this.addTextField(new WDLTextField(this.font,
+				this.width / 2 - 155, 29, 150, 20,
+				new TextComponentTranslation("wdl.gui.multiworldSelect.newName")));
 
-		this.searchField = this.addTextField(new GuiTextField(41, this.font,
-				this.width / 2 + 5, 29, 150, 20));
+		this.searchField = this.addTextField(new WDLTextField(this.font,
+				this.width / 2 + 5, 29, 150, 20,
+				new TextComponentTranslation("wdl.gui.multiworldSelect.search")));
 		this.searchField.setText(searchText);
 	}
 

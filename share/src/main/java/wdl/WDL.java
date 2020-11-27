@@ -432,7 +432,7 @@ public class WDL {
 
 		saveHandler = VersionedFunctions.getSaveHandler(minecraft, getWorldFolderName(worldName));
 
-		runSanityCheck();
+		runSanityCheck(false);
 
 		minecraft.displayGuiScreen(null);
 
@@ -505,7 +505,7 @@ public class WDL {
 		Thread thread = new Thread(() -> {
 			try {
 				saveEverything();
-				minecraft.enqueue(() -> {
+				minecraft.execute(() -> {
 					WDL.saving = false;
 					onSaveComplete();
 				});
@@ -627,7 +627,7 @@ public class WDL {
 		// Schedule this as a task to avoid threading issues.
 		// If directly displayed, in some rare cases the GUI will be drawn before it has been
 		// initialized, causing a crash.  Using a task stops that.
-		minecraft.enqueue(() -> { minecraft.displayGuiScreen(progressScreen); });
+		minecraft.execute(() -> { minecraft.displayGuiScreen(progressScreen); });
 
 		saveProps();
 
@@ -1567,8 +1567,10 @@ public class WDL {
 	 * the user is warned in chat.
 	 *
 	 * @see SanityCheck
+	 * @param stopOnError True if checking should stop on the first error.
+	 * @return false if any sanity checks failed; true otherwise.
 	 */
-	private void runSanityCheck() {
+	public boolean runSanityCheck(boolean stopOnError) {
 		Map<SanityCheck, Exception> failures = Maps.newEnumMap(SanityCheck.class);
 
 		for (SanityCheck check : SanityCheck.values()) {
@@ -1582,6 +1584,9 @@ public class WDL {
 			} catch (Exception ex) {
 				LOGGER.trace("{} failed", check, ex);
 				failures.put(check, ex);
+				if (stopOnError) {
+					break;
+				}
 			}
 		}
 		if (!failures.isEmpty()) {
@@ -1598,7 +1603,9 @@ public class WDL {
 				}
 				WDLMessages.chatMessage(WDL.serverProps, WDLMessageTypes.ERROR, "Please check the log for more info.");
 			}
+			return false;
 		}
+		return true;
 	}
 
 	/**
