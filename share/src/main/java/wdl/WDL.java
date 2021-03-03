@@ -874,19 +874,10 @@ public class WDL {
 	}
 
 	/**
-	 * Calls saveChunk for all currently loaded chunks
-	 *
-	 * @throws IllegalAccessException
-	 * @throws IllegalArgumentException
+	 * Gets a list of all currently-loaded chunks. There may be null elements in the
+	 * list.
 	 */
-	private void saveChunks(GuiWDLSaveProgress progressScreen)
-			throws IllegalArgumentException, IllegalAccessException {
-		if (!WDLPluginChannels.canDownloadAtAll()) { return; }
-
-		WDLMessages.chatMessageTranslated(WDL.serverProps,
-				WDLMessageTypes.SAVING, "wdl.messages.saving.savingChunks");
-
-		// Get the list of loaded chunks
+	public List<Chunk> getChunkList() {
 		Object obj = ReflectionUtils.findAndGetPrivateField(worldClient.getChunkProvider(),
 				ChunkProviderClient.class,
 				VersionedFunctions.getChunkListClass());
@@ -903,6 +894,23 @@ public class WDL {
 			// Shouldn't ever happen
 			throw new RuntimeException("Could not get ChunkProviderClient's chunk list: unexpected type for object " + obj);
 		}
+		return chunks;
+	}
+
+	/**
+	 * Calls saveChunk for all currently loaded chunks
+	 *
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 */
+	private void saveChunks(GuiWDLSaveProgress progressScreen)
+			throws IllegalArgumentException, IllegalAccessException {
+		if (!WDLPluginChannels.canDownloadAtAll()) { return; }
+
+		WDLMessages.chatMessageTranslated(WDL.serverProps,
+				WDLMessageTypes.SAVING, "wdl.messages.saving.savingChunks");
+
+		List<Chunk> chunks = getChunkList();
 
 		progressScreen.startMajorTask(I18n.format("wdl.saveProgress.chunk.title"),
 				chunks.size());
@@ -1277,6 +1285,15 @@ public class WDL {
 			worldInfoNBT.putInt("SpawnY", y);
 			worldInfoNBT.putInt("SpawnZ", z);
 			worldInfoNBT.putBoolean("initialized", true);
+		}
+
+		// Difficulty, DifficultyLocked, hardcore
+		WorldSettings.Difficulty difficulty = worldProps.getValue(WorldSettings.DIFFICULTY);
+		if (difficulty != WorldSettings.Difficulty.KEEP) {
+			boolean locked = worldProps.getValue(WorldSettings.LOCK_DIFFICULTY);
+			worldInfoNBT.putBoolean("hardcore", difficulty.hardcore);
+			worldInfoNBT.putByte("Difficulty", (byte)difficulty.difficultyId);
+			worldInfoNBT.putBoolean("DifficultyLocked", locked);
 		}
 
 		// Compute an entire new set of gamerules

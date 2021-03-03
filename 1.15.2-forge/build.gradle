@@ -25,7 +25,7 @@ buildscript {
 
 apply plugin: 'java'
 
-version = "4.1.1.0-SNAPSHOT"
+version = "4.1.1.1-SNAPSHOT"
 group = "wdl"
 archivesBaseName = "WorldDownloader-forge"
 libsDirName = "../../libs/${version}"
@@ -64,7 +64,7 @@ sourceSets {
 
 minecraft {
     //suppressMappingVersionWarnings = true
-    mappings channel: 'snapshot', version: '20201115-1.15.1'
+    mappings channel: 'snapshot', version: '20201215-1.15.1'
     runs {
         client {
             // These args are needed in the development environment only
